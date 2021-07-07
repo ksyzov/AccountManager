@@ -1,0 +1,16 @@
+[
+{
+  "modid": "accountmanager",
+  "name": "Account Manager",
+  "description": "Simple Account Manager for Minecraft Forge 1.8.9 inspired by The_Fireplace's InGameAccountSwitcher.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["ksyz#7084"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
