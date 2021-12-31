@@ -1,5 +1,7 @@
 package me.ksyz.accountmanager;
 
+import me.ksyz.accountmanager.gui.GuiAccountManager;
+import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiMultiplayer;
@@ -12,20 +14,30 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 public class Events {
+  private static final Minecraft mc = Minecraft.getMinecraft();
+
   @SubscribeEvent
   public void onTick(TickEvent.RenderTickEvent t) {
     GuiScreen guiScreen = Minecraft.getMinecraft().currentScreen;
-    if (guiScreen instanceof GuiMultiplayer || guiScreen instanceof GuiSelectWorld ||
-        guiScreen instanceof GuiAccountManager) {
+    if (
+      guiScreen instanceof GuiMultiplayer ||
+      guiScreen instanceof GuiSelectWorld ||
+      guiScreen instanceof GuiAccountManager
+    ) {
       GlStateManager.disableLighting();
       GlStateManager.pushMatrix();
       GlStateManager.scale(0.5, 0.5, 1.0);
-      guiScreen.drawString(Minecraft.getMinecraft().fontRendererObj,
-          TextFormatting.GRAY + "" + TextFormatting.BOLD + "Username" + TextFormatting.RESET, 12, 16, -1);
+      guiScreen.drawString(
+        mc.fontRendererObj,
+        TextFormatting.GRAY + "" + TextFormatting.BOLD + "Username" + TextFormatting.RESET,
+        12, 16, -1
+      );
       GlStateManager.popMatrix();
-      guiScreen.drawString(Minecraft.getMinecraft().fontRendererObj,
-          TextFormatting.DARK_AQUA + Minecraft.getMinecraft().getSession().getUsername() + TextFormatting.RESET, 6, 12,
-          -1);
+      guiScreen.drawString(
+        mc.fontRendererObj,
+        TextFormatting.DARK_AQUA + mc.getSession().getUsername() + TextFormatting.RESET,
+        6, 12, -1
+      );
       GlStateManager.enableLighting();
     }
   }

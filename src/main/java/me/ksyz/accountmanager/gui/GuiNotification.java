@@ -1,7 +1,6 @@
-package me.ksyz.accountmanager;
+package me.ksyz.accountmanager.gui;
 
 public class GuiNotification {
-  private final long duration = 5000;
   private String msg = "";
   private int color = 0;
   private long startTime = 0;
@@ -14,10 +13,10 @@ public class GuiNotification {
 
   public String getNotificationText() {
     long timeLeft = System.currentTimeMillis() - startTime;
+    long duration = 5000;
     if (timeLeft <= duration) {
       return "[" + (((duration - timeLeft) / 100) / 10.0) + "s] " + msg;
     }
-
     return "";
   }
 

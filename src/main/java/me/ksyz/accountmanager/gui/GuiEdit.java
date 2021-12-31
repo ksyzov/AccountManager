@@ -1,16 +1,19 @@
-package me.ksyz.accountmanager;
+package me.ksyz.accountmanager.gui;
 
+import me.ksyz.accountmanager.AccountManager;
+import me.ksyz.accountmanager.auth.Account;
 import net.minecraft.client.gui.GuiScreen;
 
 class GuiEdit extends GuiAbstractInput {
+  private static final AccountManager am = AccountManager.getAccountManager();
+
   private final int selected;
   private final String username;
   private final String password;
 
   public GuiEdit(GuiScreen previousScreen, int selected) {
     super(previousScreen, "Edit");
-
-    Account acc = AccountManager.getInstance().getAccounts().get(selected);
+    Account acc = am.getAccounts().get(selected);
     this.username = acc.getEmail();
     this.password = acc.getPassword();
     this.selected = selected;
@@ -25,19 +28,18 @@ class GuiEdit extends GuiAbstractInput {
 
   @Override
   public boolean isAccountInList() {
-    for (Account acc : AccountManager.getInstance().getAccounts()) {
+    for (Account acc : am.getAccounts()) {
       if (acc.getEmail().equals(getUsername()) && !acc.getEmail().equals(username)) {
         return true;
       }
     }
-
     return false;
   }
 
   @Override
   public boolean complete() {
-    Account acc = AccountManager.getInstance().getAccountToAdd(getUsername(), getPassword());
-    AccountManager.getInstance().getAccounts().set(selected, acc);
+    Account acc = am.getAccountToAdd(getUsername(), getPassword());
+    am.getAccounts().set(selected, acc);
     return true;
   }
 }

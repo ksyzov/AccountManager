@@ -1,11 +1,9 @@
-package me.ksyz.accountmanager;
+package me.ksyz.accountmanager.utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.security.spec.KeySpec;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import net.minecraft.client.Minecraft;
+import org.apache.commons.io.IOUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -13,13 +11,12 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-
-import org.apache.commons.io.IOUtils;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import net.minecraft.client.Minecraft;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.spec.KeySpec;
 
 public class FileEncryption {
   private static byte[] salt, iv;
@@ -29,7 +26,6 @@ public class FileEncryption {
       SecureRandom rdm = new SecureRandom();
       salt = new byte[64];
       iv = new byte[16];
-
       rdm.nextBytes(salt);
       rdm.nextBytes(iv);
     }
@@ -44,7 +40,6 @@ public class FileEncryption {
 
   public static JsonObject decrypt(String password) throws Exception {
     File in = new File(Minecraft.getMinecraft().mcDataDir, "accounts.enc");
-
     FileInputStream fis = new FileInputStream(in);
     salt = new byte[64];
     iv = new byte[16];
@@ -53,9 +48,7 @@ public class FileEncryption {
     byte[] encrypted = new byte[(int) in.length() - (64 + 16)];
     fis.read(encrypted);
     fis.close();
-
     Cipher cipher = create(password, false);
-
     return new JsonParser().parse(IOUtils.toString(cipher.doFinal(encrypted), "UTF-8")).getAsJsonObject();
   }
 
@@ -64,12 +57,9 @@ public class FileEncryption {
     KeySpec passwordBasedEncryptionKeySpec = new PBEKeySpec(password.toCharArray(), salt, 10000, 128);
     SecretKey secretKeyFromPBKDF2 = secretKeyFactory.generateSecret(passwordBasedEncryptionKeySpec);
     SecretKey key = new SecretKeySpec(secretKeyFromPBKDF2.getEncoded(), "AES");
-
     Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
     IvParameterSpec spec = new IvParameterSpec(iv);
-
     cipher.init(encrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, key, spec);
-
     return cipher;
   }
 }

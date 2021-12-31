@@ -1,12 +1,11 @@
-package me.ksyz.accountmanager;
-
-import java.io.IOException;
-
-import org.lwjgl.input.Keyboard;
+package me.ksyz.accountmanager.gui;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import org.lwjgl.input.Keyboard;
+
+import java.io.IOException;
 
 public abstract class GuiAbstractInput extends GuiScreen {
   private final GuiScreen previousScreen;
@@ -24,13 +23,20 @@ public abstract class GuiAbstractInput extends GuiScreen {
   public void initGui() {
     Keyboard.enableRepeatEvents(true);
     this.buttonList.clear();
-    this.buttonList
-        .add(complete = new GuiButton(2, this.width / 2 - 152, this.height / 2 + 15, 150, 20, this.actionString));
-    this.buttonList.add(new GuiButton(3, this.width / 2 + 2, this.height / 2 + 15, 150, 20, "Cancel"));
-    usernameField = new GuiTextField(0, this.fontRendererObj, this.width / 2 - 100, this.height / 2 - 45, 200, 20);
+    this.buttonList.add(complete = new GuiButton(
+      2, this.width / 2 - 152, this.height / 2 + 15, 150, 20, this.actionString
+    ));
+    this.buttonList.add(new GuiButton(
+      3, this.width / 2 + 2, this.height / 2 + 15, 150, 20, "Cancel"
+    ));
+    usernameField = new GuiTextField(
+      0, this.fontRendererObj, this.width / 2 - 100, this.height / 2 - 45, 200, 20
+    );
     usernameField.setFocused(true);
     usernameField.setMaxStringLength(64);
-    passwordField = new GuiTextField(1, this.fontRendererObj, this.width / 2 - 100, this.height / 2 - 15, 200, 20);
+    passwordField = new GuiTextField(
+      1, this.fontRendererObj, this.width / 2 - 100, this.height / 2 - 15, 200, 20
+    );
     passwordField.setMaxStringLength(64);
     complete.enabled = false;
   }
@@ -38,10 +44,16 @@ public abstract class GuiAbstractInput extends GuiScreen {
   @Override
   public void drawScreen(int mouseX, int mouseY, float renderPartialTicks) {
     this.drawDefaultBackground();
-    this.drawCenteredString(fontRendererObj, this.actionString, this.width / 2, 7, -1);
-    this.drawCenteredString(fontRendererObj, "Username", this.width / 2 - 130, this.height / 2 - 39, 0xFFA0A0A0);
+    this.drawCenteredString(
+      fontRendererObj, this.actionString, this.width / 2, 7, -1
+    );
+    this.drawCenteredString(
+      fontRendererObj, "Username", this.width / 2 - 130, this.height / 2 - 39, 0xFFA0A0A0
+    );
     usernameField.drawTextBox();
-    this.drawCenteredString(fontRendererObj, "Password", this.width / 2 - 130, this.height / 2 - 9, 0xFFA0A0A0);
+    this.drawCenteredString(
+      fontRendererObj, "Password", this.width / 2 - 130, this.height / 2 - 9, 0xFFA0A0A0
+    );
     passwordField.drawTextBox();
     super.drawScreen(mouseX, mouseY, renderPartialTicks);
   }

@@ -1,46 +1,42 @@
 package me.ksyz.accountmanager;
 
-import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
-import java.net.Proxy;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import com.mojang.authlib.Agent;
-import com.mojang.authlib.AuthenticationService;
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.UserAuthentication;
 import com.mojang.authlib.exceptions.AuthenticationException;
-import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
-
+import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.auth.LegacyAuth;
+import me.ksyz.accountmanager.auth.MojangAuth;
+import me.ksyz.accountmanager.auth.SessionData;
+import me.ksyz.accountmanager.utils.FileEncryption;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Session;
 
+import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class AccountManager {
-  private static AccountManager accountManagerInstance = null;
-  private static ExecutorService pool;
-  private static Gson gson;
-  private static Type type;
+  private static final Minecraft mc = Minecraft.getMinecraft();
+  private static final ExecutorService pool = Executors.newFixedThreadPool(1);
+  private static final Gson gson = new Gson();
+  private static final Type type = (
+    new TypeToken<List<Account>>() {
+    }.getType()
+  );
+
+  private static AccountManager accountManager = null;
   private static Field sessionField;
 
-  private UserAuthentication userAuth;
+  private final boolean isNew;
   private ArrayList<Account> accounts;
   private String password;
-  private boolean isNew;
 
   static {
-    pool = Executors.newFixedThreadPool(1);
-    gson = new Gson();
-    type = new TypeToken<List<Account>>() {
-    }.getType();
-
     try {
       for (Field f : Minecraft.class.getDeclaredFields()) {
         if (f.getType().isAssignableFrom(Session.class)) {
@@ -54,71 +50,66 @@ public class AccountManager {
     }
   }
 
-  public AccountManager() {
-    // The client generates a random UUID for authentication
-    UUID uuid = UUID.randomUUID();
-
-    AuthenticationService service = new YggdrasilAuthenticationService(Proxy.NO_PROXY, uuid.toString());
-    userAuth = service.createUserAuthentication(Agent.MINECRAFT);
-    service.createMinecraftSessionService();
-
-    isNew = !new File(Minecraft.getMinecraft().mcDataDir, "accounts.enc").exists();
+  private static void setSession(SessionData sessionData) {
+    try {
+      sessionField.set(mc, new Session(
+        sessionData.getUsername(),
+        sessionData.getUuid(),
+        sessionData.getAccessToken(),
+        sessionData.getUserType()
+      ));
+    } catch (IllegalAccessException e) {
+      System.err.println("Couldn't access session field");
+    }
   }
 
-  public static AccountManager getInstance() {
-    if (accountManagerInstance == null) {
-      accountManagerInstance = new AccountManager();
-    }
+  public AccountManager() {
+    isNew = !new File(mc.mcDataDir, "accounts.enc").exists();
+  }
 
-    return accountManagerInstance;
+  public static AccountManager getAccountManager() {
+    if (accountManager == null) {
+      accountManager = new AccountManager();
+    }
+    return accountManager;
   }
 
   public void setPassword(String password) {
     this.password = password;
   }
 
-  public boolean isNew() {
-    return isNew;
-  }
-
   public ArrayList<Account> getAccounts() {
     return accounts;
   }
 
-  public Account getAccountToAdd(String username, String password) {
-    Account acc = null;
+  public Account getAccountToAdd(String email, String password) {
+    Account acc;
     if ("".equals(password)) {
-      acc = new Account(username, "", username, username, "legacy");
+      acc = new Account(email, "", "legacy", email);
     } else {
-      acc = new Account(username, password, "", "", "");
+      acc = new Account(email, password, "mojang", "");
     }
-
     return acc;
   }
 
-  public void login(Account acc) throws AuthenticationException {
-    userAuth.logOut();
-    if ("legacy".equals(acc.getType())) {
-      userAuth.setUsername(acc.getName());
-      setSession(acc.getName(), acc.getName(), "0", "legacy");
+  public void login(Account account) throws AuthenticationException {
+    SessionData sessionData;
+    if ("legacy".equals(account.getUserType())) {
+      sessionData = LegacyAuth.login(account);
+      setSession(sessionData);
     } else {
-      userAuth.setUsername(acc.getEmail());
-      userAuth.setPassword(acc.getPassword());
-      userAuth.logIn();
+      sessionData = MojangAuth.login(account);
+      account.setUserType(sessionData.getUserType());
+      account.setUsername(sessionData.getUsername());
+    }
+    setSession(sessionData);
+    save();
+  }
 
-      GameProfile profile = userAuth.getSelectedProfile();
-      String type = userAuth.getUserType().getName();
-      setSession(profile.getName(), profile.getId().toString(), userAuth.getAuthenticatedToken(), type);
-
-      acc.setName(profile.getName());
-      acc.setUuid(profile.getId().toString());
-      acc.setType(type);
-
-      try {
-        save();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+  public void create() throws Exception {
+    accounts = new ArrayList<>();
+    if (new File(mc.mcDataDir, "accounts.enc").createNewFile()) {
+      save();
     }
   }
 
@@ -129,7 +120,7 @@ public class AccountManager {
       try {
         FileEncryption.encrypt(password, json);
       } catch (Exception e) {
-        e.printStackTrace();
+        System.err.println("Couldn't save the file");
       }
     });
   }
@@ -139,23 +130,7 @@ public class AccountManager {
       create();
       return;
     }
-
     JsonObject json = FileEncryption.decrypt(password);
     accounts = gson.fromJson(json.getAsJsonArray("accounts"), type);
-  }
-
-  private void create() throws Exception {
-    accounts = new ArrayList<Account>();
-    new File(Minecraft.getMinecraft().mcDataDir, "accounts.enc").createNewFile();
-    save();
-  }
-
-  private static void setSession(String name, String uuid, String token, String userType) {
-    Session session = new Session(name, uuid, token, userType);
-    try {
-      sessionField.set(Minecraft.getMinecraft(), session);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    }
   }
 }
