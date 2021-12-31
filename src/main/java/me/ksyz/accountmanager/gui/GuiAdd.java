@@ -13,18 +13,13 @@ public class GuiAdd extends GuiAbstractInput {
 
   @Override
   public boolean isAccountInList() {
-    for (Account acc : am.getAccounts()) {
-      if (acc.getEmail().equals(getUsername())) {
-        return true;
-      }
-    }
-    return false;
+    return am.isAccountInList(getUsername());
   }
 
   @Override
   public boolean complete() {
-    Account acc = am.getAccountToAdd(getUsername(), getPassword());
-    am.getAccounts().add(acc);
+    Account account = am.getAccountToAdd(getUsername(), getPassword());
+    am.getAccounts().add(account);
     return true;
   }
 }

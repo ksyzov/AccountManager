@@ -230,8 +230,9 @@ public class GuiAccountManager extends GuiScreen {
     for (String line : lines) {
       if (line.contains(":")) {
         String[] combo = line.split(":");
-        Account acc = am.getAccountToAdd(combo[0], combo[1]);
-        am.getAccounts().add(acc);
+        if (!am.isAccountInList(combo[0])) {
+          am.getAccounts().add(am.getAccountToAdd(combo[0], combo[1]));
+        }
       }
     }
   }

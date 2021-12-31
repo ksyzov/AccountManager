@@ -13,9 +13,9 @@ class GuiEdit extends GuiAbstractInput {
 
   public GuiEdit(GuiScreen previousScreen, int selected) {
     super(previousScreen, "Edit");
-    Account acc = am.getAccounts().get(selected);
-    this.username = acc.getEmail();
-    this.password = acc.getPassword();
+    Account account = am.getAccounts().get(selected);
+    this.username = account.getEmail();
+    this.password = account.getPassword();
     this.selected = selected;
   }
 
@@ -28,8 +28,8 @@ class GuiEdit extends GuiAbstractInput {
 
   @Override
   public boolean isAccountInList() {
-    for (Account acc : am.getAccounts()) {
-      if (acc.getEmail().equals(getUsername()) && !acc.getEmail().equals(username)) {
+    for (Account account : am.getAccounts()) {
+      if (account.getEmail().equals(getUsername()) && !account.getEmail().equals(username)) {
         return true;
       }
     }
@@ -38,8 +38,8 @@ class GuiEdit extends GuiAbstractInput {
 
   @Override
   public boolean complete() {
-    Account acc = am.getAccountToAdd(getUsername(), getPassword());
-    am.getAccounts().set(selected, acc);
+    Account account = am.getAccountToAdd(getUsername(), getPassword());
+    am.getAccounts().set(selected, account);
     return true;
   }
 }

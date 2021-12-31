@@ -17,6 +17,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -82,6 +83,15 @@ public class AccountManager {
     return accounts;
   }
 
+  public boolean isAccountInList(String email) {
+    for (Account account : getAccounts()) {
+      if (account.getEmail().equals(email)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public Account getAccountToAdd(String email, String password) {
     Account acc;
     if ("".equals(password)) {
@@ -93,17 +103,20 @@ public class AccountManager {
   }
 
   public void login(Account account) throws AuthenticationException {
-    SessionData sessionData;
     if ("legacy".equals(account.getUserType())) {
-      sessionData = LegacyAuth.login(account);
-      setSession(sessionData);
+      setSession(LegacyAuth.login(account));
     } else {
-      sessionData = MojangAuth.login(account);
-      account.setUserType(sessionData.getUserType());
-      account.setUsername(sessionData.getUsername());
+      SessionData sessionData = MojangAuth.login(account);
+      setSession(sessionData);
+      if (
+        !Objects.equals(account.getUserType(), sessionData.getUserType()) ||
+        !Objects.equals(account.getUsername(), sessionData.getUsername())
+      ) {
+        account.setUserType(sessionData.getUserType());
+        account.setUsername(sessionData.getUsername());
+        save();
+      }
     }
-    setSession(sessionData);
-    save();
   }
 
   public void create() throws Exception {
