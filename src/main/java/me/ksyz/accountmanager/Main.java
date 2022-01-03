@@ -14,14 +14,8 @@ public class Main {
 
   @EventHandler
   public static void init(FMLInitializationEvent event) {
-    try {
-      // The password is used for encryption and is not really important
-      am.setPassword("5d2ef462ec9fccd8756aacbf865c7a65");
-      am.read();
-    } catch (Exception e) {
-      System.err.println("Password for Account Manager is incorrect!");
-    }
-
     MinecraftForge.EVENT_BUS.register(new Events());
+    am.setPassword("5d2ef462ec9fccd8756aacbf865c7a65");
+    am.read();
   }
 }

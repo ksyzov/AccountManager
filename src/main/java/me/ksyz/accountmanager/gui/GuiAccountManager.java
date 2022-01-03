@@ -2,7 +2,9 @@ package me.ksyz.accountmanager.gui;
 
 import com.mojang.authlib.exceptions.AuthenticationException;
 import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.account.Account;
+import me.ksyz.accountmanager.account.LegacyAccount;
+import me.ksyz.accountmanager.account.MojangAccount;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -154,14 +156,13 @@ public class GuiAccountManager extends GuiScreen {
 
     if (GuiScreen.isKeyComboCtrlC(keyIndex) && selectedAccount >= 0) {
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-      String email = am.getAccounts().get(selectedAccount).getEmail();
-      String password = am.getAccounts().get(selectedAccount).getPassword();
-      if ("".equals(password)) {
-        // Copy only name (email)
-        clipboard.setContents(new StringSelection(email), null);
-      } else {
-        // Copy email:password
-        clipboard.setContents(new StringSelection(email + ":" + password), null);
+      Account account = am.getAccounts().get(selectedAccount);
+      if (account instanceof LegacyAccount) {
+        clipboard.setContents(new StringSelection(account.getUsername()), null);
+      } else if (account instanceof MojangAccount) {
+        clipboard.setContents(new StringSelection(
+          ((MojangAccount) account).getEmail() + ":" + ((MojangAccount) account).getPassword()
+        ), null);
       }
     } else if (GuiScreen.isKeyComboCtrlV(keyIndex)) {
       importAccount();
@@ -200,10 +201,16 @@ public class GuiAccountManager extends GuiScreen {
     Account acc = am.getAccounts().get(selectedAccount);
     try {
       am.login(acc);
-      guiNotification.setNotification("Successful login! (" + acc.getEmail() + ")", -11141291);
+      guiNotification.setNotification(
+        "Successful login!" + (acc.getUsername().equals("") ? "" : " (" + acc.getUsername() + ")"),
+        -11141291
+      );
       mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.pling")));
     } catch (AuthenticationException e) {
-      guiNotification.setNotification("Invalid credentials! (" + acc.getEmail() + ")", -43691);
+      guiNotification.setNotification(
+        "Invalid credentials!" + (acc.getUsername().equals("") ? "" : " (" + acc.getUsername() + ")"),
+        -43691
+      );
       mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.bass")));
     }
   }
@@ -230,8 +237,9 @@ public class GuiAccountManager extends GuiScreen {
     for (String line : lines) {
       if (line.contains(":")) {
         String[] combo = line.split(":");
-        if (!am.isAccountInList(combo[0])) {
-          am.getAccounts().add(am.getAccountToAdd(combo[0], combo[1]));
+        MojangAccount account = new MojangAccount(combo[0], combo[1]);
+        if (!am.isAccountInList(account)) {
+          am.getAccounts().add(account);
         }
       }
     }
@@ -304,11 +312,11 @@ public class GuiAccountManager extends GuiScreen {
         username = (username + TextFormatting.GREEN + " \u2714" + TextFormatting.RESET);
       }
 
-      String info;
-      if ("legacy".equals(account.getUserType())) {
+      String info = "";
+      if (account instanceof LegacyAccount) {
         info = TextFormatting.DARK_GRAY + "Offline" + TextFormatting.RESET;
-      } else {
-        info = TextFormatting.GRAY + account.getEmail() + TextFormatting.RESET;
+      } else if (account instanceof MojangAccount) {
+        info = TextFormatting.GRAY + ((MojangAccount) account).getEmail() + TextFormatting.RESET;
       }
 
       GuiAccountManager.this.drawString(

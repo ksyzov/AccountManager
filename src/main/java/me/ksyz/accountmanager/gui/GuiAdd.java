@@ -1,7 +1,8 @@
 package me.ksyz.accountmanager.gui;
 
 import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.account.LegacyAccount;
+import me.ksyz.accountmanager.account.MojangAccount;
 import net.minecraft.client.gui.GuiScreen;
 
 public class GuiAdd extends GuiAbstractInput {
@@ -18,8 +19,11 @@ public class GuiAdd extends GuiAbstractInput {
 
   @Override
   public boolean complete() {
-    Account account = am.getAccountToAdd(getUsername(), getPassword());
-    am.getAccounts().add(account);
+    if (getPassword().equals("")) {
+      am.getAccounts().add(new LegacyAccount(getUsername()));
+    } else {
+      am.getAccounts().add(new MojangAccount(getUsername(), getPassword()));
+    }
     return true;
   }
 }

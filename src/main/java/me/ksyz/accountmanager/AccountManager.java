@@ -1,10 +1,12 @@
 package me.ksyz.accountmanager;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import com.mojang.authlib.exceptions.AuthenticationException;
-import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.account.Account;
+import me.ksyz.accountmanager.account.LegacyAccount;
+import me.ksyz.accountmanager.account.MojangAccount;
 import me.ksyz.accountmanager.auth.LegacyAuth;
 import me.ksyz.accountmanager.auth.MojangAuth;
 import me.ksyz.accountmanager.auth.SessionData;
@@ -13,28 +15,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.Session;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AccountManager {
   private static final Minecraft mc = Minecraft.getMinecraft();
   private static final ExecutorService pool = Executors.newFixedThreadPool(1);
-  private static final Gson gson = new Gson();
-  private static final Type type = (
-    new TypeToken<List<Account>>() {
-    }.getType()
-  );
 
   private static AccountManager accountManager = null;
   private static Field sessionField;
 
-  private final boolean isNew;
-  private ArrayList<Account> accounts;
+  private final ArrayList<Account> accounts;
   private String password;
 
   static {
@@ -65,7 +59,17 @@ public class AccountManager {
   }
 
   public AccountManager() {
-    isNew = !new File(mc.mcDataDir, "accounts.enc").exists();
+    accounts = new ArrayList<>();
+    File file = new File(mc.mcDataDir, "accounts.enc");
+    if (!file.exists()) {
+      try {
+        if (file.createNewFile()) {
+          save();
+        }
+      } catch (IOException exception) {
+        System.err.println("Couldn't create accounts.enc in " + mc.mcDataDir);
+      }
+    }
   }
 
   public static AccountManager getAccountManager() {
@@ -83,67 +87,79 @@ public class AccountManager {
     return accounts;
   }
 
-  public boolean isAccountInList(String email) {
-    for (Account account : getAccounts()) {
-      if (account.getEmail().equals(email)) {
+  public boolean isAccountInList(String username) {
+    for (Account acc : accounts) {
+      if (acc instanceof LegacyAccount && acc.getUsername().equals(username)) {
+        return true;
+      } else if (acc instanceof MojangAccount && ((MojangAccount) acc).getEmail().equals(username)) {
         return true;
       }
     }
     return false;
   }
 
-  public Account getAccountToAdd(String email, String password) {
-    Account acc;
-    if ("".equals(password)) {
-      acc = new Account(email, "", "legacy", email);
-    } else {
-      acc = new Account(email, password, "mojang", "");
+  public boolean isAccountInList(MojangAccount account) {
+    for (Account acc : accounts) {
+      if (acc instanceof MojangAccount && ((MojangAccount) acc).getEmail().equals(account.getEmail())) {
+        return true;
+      }
     }
-    return acc;
+    return false;
   }
 
   public void login(Account account) throws AuthenticationException {
-    if ("legacy".equals(account.getUserType())) {
-      setSession(LegacyAuth.login(account));
-    } else {
-      SessionData sessionData = MojangAuth.login(account);
-      setSession(sessionData);
-      if (
-        !Objects.equals(account.getUserType(), sessionData.getUserType()) ||
-        !Objects.equals(account.getUsername(), sessionData.getUsername())
-      ) {
-        account.setUserType(sessionData.getUserType());
-        account.setUsername(sessionData.getUsername());
-        save();
-      }
-    }
-  }
-
-  public void create() throws Exception {
-    accounts = new ArrayList<>();
-    if (new File(mc.mcDataDir, "accounts.enc").createNewFile()) {
-      save();
+    if (account instanceof LegacyAccount) {
+      setSession(LegacyAuth.login((LegacyAccount) account));
+    } else if (account instanceof MojangAccount) {
+      setSession(MojangAuth.login((MojangAccount) account));
     }
   }
 
   public void save() {
-    JsonObject json = new JsonObject();
-    json.add("accounts", gson.toJsonTree(accounts, type));
+    JsonArray array = new JsonArray();
+    for (Account account : accounts) {
+      if (account instanceof LegacyAccount) {
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "Legacy");
+        json.addProperty("username", account.getUsername());
+        array.add(json);
+      } else if (account instanceof MojangAccount) {
+        JsonObject jsonAccount = new JsonObject();
+        jsonAccount.addProperty("type", "Mojang");
+        jsonAccount.addProperty("email", ((MojangAccount) account).getEmail());
+        jsonAccount.addProperty("password", ((MojangAccount) account).getPassword());
+        jsonAccount.addProperty("username", account.getUsername());
+        array.add(jsonAccount);
+      }
+    }
     pool.execute(() -> {
       try {
-        FileEncryption.encrypt(password, json);
+        FileEncryption.encrypt(password, array);
       } catch (Exception e) {
         System.err.println("Couldn't save the file");
       }
     });
   }
 
-  public void read() throws Exception {
-    if (isNew) {
-      create();
-      return;
+  public void read() {
+    JsonArray array = new JsonArray();
+    try {
+      array = FileEncryption.decrypt(password);
+    } catch (Exception e) {
+      System.err.println("Couldn't read the file");
     }
-    JsonObject json = FileEncryption.decrypt(password);
-    accounts = gson.fromJson(json.getAsJsonArray("accounts"), type);
+    for (JsonElement element : array) {
+      JsonObject json = element.getAsJsonObject();
+      String type = json.get("type").getAsString();
+      if (type.equals("Legacy")) {
+        accounts.add(new LegacyAccount(json.get("username").getAsString()));
+      } else if (type.equals("Mojang")) {
+        accounts.add(new MojangAccount(
+          json.get("email").getAsString(),
+          json.get("password").getAsString(),
+          json.get("username").getAsString()
+        ));
+      }
+    }
   }
 }

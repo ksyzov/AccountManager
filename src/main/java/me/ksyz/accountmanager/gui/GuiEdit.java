@@ -1,7 +1,9 @@
 package me.ksyz.accountmanager.gui;
 
 import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.account.Account;
+import me.ksyz.accountmanager.account.LegacyAccount;
+import me.ksyz.accountmanager.account.MojangAccount;
 import net.minecraft.client.gui.GuiScreen;
 
 class GuiEdit extends GuiAbstractInput {
@@ -13,10 +15,18 @@ class GuiEdit extends GuiAbstractInput {
 
   public GuiEdit(GuiScreen previousScreen, int selected) {
     super(previousScreen, "Edit");
-    Account account = am.getAccounts().get(selected);
-    this.username = account.getEmail();
-    this.password = account.getPassword();
     this.selected = selected;
+    Account account = am.getAccounts().get(selected);
+    if (account instanceof LegacyAccount) {
+      this.username = account.getUsername();
+      this.password = "";
+    } else if (account instanceof MojangAccount) {
+      this.username = ((MojangAccount) account).getEmail();
+      this.password = ((MojangAccount) account).getPassword();
+    } else {
+      this.username = "";
+      this.password = "";
+    }
   }
 
   @Override
@@ -28,8 +38,19 @@ class GuiEdit extends GuiAbstractInput {
 
   @Override
   public boolean isAccountInList() {
-    for (Account account : am.getAccounts()) {
-      if (account.getEmail().equals(getUsername()) && !account.getEmail().equals(username)) {
+    for (Account acc : am.getAccounts()) {
+      if (
+        acc instanceof LegacyAccount &&
+        acc.getUsername().equals(getUsername()) &&
+        !acc.getUsername().equals(username)
+      ) {
+        return true;
+      }
+      if (
+        acc instanceof MojangAccount &&
+        ((MojangAccount) acc).getEmail().equals(getUsername()) &&
+        !((MojangAccount) acc).getEmail().equals(username)
+      ) {
         return true;
       }
     }
@@ -38,8 +59,11 @@ class GuiEdit extends GuiAbstractInput {
 
   @Override
   public boolean complete() {
-    Account account = am.getAccountToAdd(getUsername(), getPassword());
-    am.getAccounts().set(selected, account);
+    if (getPassword().equals("")) {
+      am.getAccounts().set(selected, new LegacyAccount(getUsername()));
+    } else {
+      am.getAccounts().set(selected, new MojangAccount(getUsername(), getPassword()));
+    }
     return true;
   }
 }

@@ -1,6 +1,6 @@
 package me.ksyz.accountmanager.utils;
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import org.apache.commons.io.IOUtils;
@@ -21,7 +21,7 @@ import java.security.spec.KeySpec;
 public class FileEncryption {
   private static byte[] salt, iv;
 
-  public static void encrypt(String password, JsonObject jsonIn) throws Exception {
+  public static void encrypt(String password, JsonArray json) throws Exception {
     if (salt == null || iv == null) {
       SecureRandom rdm = new SecureRandom();
       salt = new byte[64];
@@ -34,11 +34,11 @@ public class FileEncryption {
     FileOutputStream fos = new FileOutputStream(out);
     fos.write(salt);
     fos.write(iv);
-    fos.write(cipher.doFinal(jsonIn.toString().getBytes(StandardCharsets.UTF_8)));
+    fos.write(cipher.doFinal(json.toString().getBytes(StandardCharsets.UTF_8)));
     fos.close();
   }
 
-  public static JsonObject decrypt(String password) throws Exception {
+  public static JsonArray decrypt(String password) throws Exception {
     File in = new File(Minecraft.getMinecraft().mcDataDir, "accounts.enc");
     FileInputStream fis = new FileInputStream(in);
     salt = new byte[64];
@@ -49,7 +49,7 @@ public class FileEncryption {
     fis.read(encrypted);
     fis.close();
     Cipher cipher = create(password, false);
-    return new JsonParser().parse(IOUtils.toString(cipher.doFinal(encrypted), "UTF-8")).getAsJsonObject();
+    return new JsonParser().parse(IOUtils.toString(cipher.doFinal(encrypted), "UTF-8")).getAsJsonArray();
   }
 
   private static Cipher create(String password, boolean encrypt) throws Exception {
