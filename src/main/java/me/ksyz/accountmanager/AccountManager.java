@@ -45,19 +45,6 @@ public class AccountManager {
     }
   }
 
-  private static void setSession(SessionData sessionData) {
-    try {
-      sessionField.set(mc, new Session(
-        sessionData.getUsername(),
-        sessionData.getUuid(),
-        sessionData.getAccessToken(),
-        sessionData.getUserType()
-      ));
-    } catch (IllegalAccessException e) {
-      System.err.println("Couldn't access session field");
-    }
-  }
-
   public AccountManager() {
     accounts = new ArrayList<>();
     File file = new File(mc.mcDataDir, "accounts.enc");
@@ -77,6 +64,19 @@ public class AccountManager {
       accountManager = new AccountManager();
     }
     return accountManager;
+  }
+
+  public void setSession(SessionData sessionData) {
+    try {
+      sessionField.set(mc, new Session(
+        sessionData.getUsername(),
+        sessionData.getUuid(),
+        sessionData.getAccessToken(),
+        sessionData.getUserType()
+      ));
+    } catch (IllegalAccessException e) {
+      System.err.println("Couldn't access session field");
+    }
   }
 
   public void setPassword(String password) {

@@ -22,7 +22,6 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 
 public class GuiAccountManager extends GuiScreen {
-  private static final Minecraft mc = Minecraft.getMinecraft();
   private static final AccountManager am = AccountManager.getAccountManager();
 
   private final GuiScreen previousScreen;
@@ -65,12 +64,16 @@ public class GuiAccountManager extends GuiScreen {
       5, this.width / 2 + 4 + 50, this.height - 28, 110, 20, "Cancel"
     ));
 
+    buttonList.add(new GuiButton(
+      6, width - 106, 6, 100, 20, "Microsoft"
+    ));
+
     // Notification
     guiNotification = new GuiNotification();
 
     // Account List
     guiAccountList = new GuiAccountManager.List(mc);
-    guiAccountList.registerScrollButtons(6, 7);
+    guiAccountList.registerScrollButtons(11, 12);
     updateButtons();
   }
 
@@ -191,6 +194,8 @@ public class GuiAccountManager extends GuiScreen {
         case 5:
           cancel();
           break;
+        case 6:
+          mc.displayGuiScreen(new GuiMicrosoftAuth(previousScreen));
         default:
           guiAccountList.actionPerformed(button);
       }
