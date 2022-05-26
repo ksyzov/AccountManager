@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 import me.ksyz.accountmanager.utils.SystemUtils;
+import net.minecraft.util.Session;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
@@ -439,7 +440,7 @@ public final class MicrosoftAuth {
    * @param executor executor to run the login task on
    * @return completable future for the new Minecraft session
    */
-  public static CompletableFuture<SessionData> login(
+  public static CompletableFuture<Session> login(
     final String mcToken,
     final Executor executor
   ) {
@@ -459,11 +460,11 @@ public final class MicrosoftAuth {
           .map(JsonElement::getAsString)
           .filter(uuid -> !StringUtils.isBlank(uuid))
           // If present, build a new session and return
-          .map(uuid -> new SessionData(
-            mcToken,
-            uuid,
+          .map(uuid -> new Session(
             json.get("name").getAsString(),
-            "msa"
+            uuid,
+            mcToken,
+            Session.Type.MOJANG.toString()
           ))
           // Otherwise, throw an exception with the error description (if present)
           .orElseThrow(() -> new Exception(
