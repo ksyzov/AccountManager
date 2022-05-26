@@ -9,14 +9,12 @@ import me.ksyz.accountmanager.account.LegacyAccount;
 import me.ksyz.accountmanager.account.MojangAccount;
 import me.ksyz.accountmanager.auth.LegacyAuth;
 import me.ksyz.accountmanager.auth.MojangAuth;
-import me.ksyz.accountmanager.auth.SessionData;
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.FileEncryption;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.Session;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,24 +24,8 @@ public class AccountManager {
   private static final ExecutorService pool = Executors.newFixedThreadPool(1);
 
   private static AccountManager accountManager = null;
-  private static Field sessionField;
-
   private final ArrayList<Account> accounts;
   private String password;
-
-  static {
-    try {
-      for (Field f : Minecraft.class.getDeclaredFields()) {
-        if (f.getType().isAssignableFrom(Session.class)) {
-          sessionField = f;
-          break;
-        }
-      }
-      sessionField.setAccessible(true);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   public AccountManager() {
     accounts = new ArrayList<>();
@@ -64,19 +46,6 @@ public class AccountManager {
       accountManager = new AccountManager();
     }
     return accountManager;
-  }
-
-  public void setSession(SessionData sessionData) {
-    try {
-      sessionField.set(mc, new Session(
-        sessionData.getUsername(),
-        sessionData.getUuid(),
-        sessionData.getAccessToken(),
-        sessionData.getUserType()
-      ));
-    } catch (IllegalAccessException e) {
-      System.err.println("Couldn't access session field");
-    }
   }
 
   public void setPassword(String password) {
@@ -109,9 +78,9 @@ public class AccountManager {
 
   public void login(Account account) throws AuthenticationException {
     if (account instanceof LegacyAccount) {
-      setSession(LegacyAuth.login((LegacyAccount) account));
+      SessionManager.setSession(LegacyAuth.login((LegacyAccount) account));
     } else if (account instanceof MojangAccount) {
-      setSession(MojangAuth.login((MojangAccount) account));
+      SessionManager.setSession(MojangAuth.login((MojangAccount) account));
     }
   }
 

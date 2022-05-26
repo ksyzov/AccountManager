@@ -5,11 +5,12 @@ import com.mojang.authlib.UserAuthentication;
 import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import me.ksyz.accountmanager.account.MojangAccount;
+import net.minecraft.util.Session;
 
 import java.net.Proxy;
 
 public class MojangAuth {
-  public static SessionData login(MojangAccount account) throws AuthenticationException {
+  public static Session login(MojangAccount account) throws AuthenticationException {
     UserAuthentication auth = new YggdrasilAuthenticationService(
       Proxy.NO_PROXY, "1"
     ).createUserAuthentication(Agent.MINECRAFT);
@@ -18,11 +19,11 @@ public class MojangAuth {
     try {
       auth.logIn();
       account.setUsername(auth.getSelectedProfile().getName());
-      return new SessionData(
-        auth.getAuthenticatedToken(),
-        auth.getSelectedProfile().getId().toString().replace("-", ""),
+      return new Session(
         auth.getSelectedProfile().getName(),
-        auth.getUserType().getName()
+        auth.getSelectedProfile().getId().toString().replace("-", ""),
+        auth.getAuthenticatedToken(),
+        Session.Type.MOJANG.toString()
       );
     } catch (AuthenticationException e) {
       throw new AuthenticationException("Login failed");

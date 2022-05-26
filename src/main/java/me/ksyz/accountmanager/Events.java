@@ -1,5 +1,6 @@
 package me.ksyz.accountmanager;
 
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.gui.GuiAccountManager;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
@@ -35,7 +36,7 @@ public class Events {
       GlStateManager.popMatrix();
       guiScreen.drawString(
         mc.fontRendererObj,
-        TextFormatting.DARK_AQUA + mc.getSession().getUsername() + TextFormatting.RESET,
+        TextFormatting.DARK_AQUA + SessionManager.getSession().getUsername() + TextFormatting.RESET,
         6, 12, -1
       );
       GlStateManager.enableLighting();

@@ -2,6 +2,7 @@ package me.ksyz.accountmanager.gui;
 
 import me.ksyz.accountmanager.AccountManager;
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -59,7 +60,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
       })
       .thenAccept(session -> {
         mc.displayGuiScreen(previousScreen);
-        am.setSession(session);
+        SessionManager.setSession(session);
       })
       .exceptionally(error -> {
         status = String.format("&c%s&r", error.getMessage());
