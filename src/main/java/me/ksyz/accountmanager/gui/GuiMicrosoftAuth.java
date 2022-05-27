@@ -2,12 +2,12 @@ package me.ksyz.accountmanager.gui;
 
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.auth.SessionManager;
+import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,6 +16,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   private final GuiScreen previousScreen;
   private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+  private GuiButton cancelButton = null;
   private CompletableFuture<Void> task = null;
   private String status = null;
 
@@ -26,7 +27,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   @Override
   public void initGui() {
     buttonList.clear();
-    buttonList.add(new GuiButton(
+    buttonList.add(cancelButton = new GuiButton(
       0, width / 2 - 100, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, "Cancel"
     ));
 
@@ -59,8 +60,12 @@ public class GuiMicrosoftAuth extends GuiScreen {
         return MicrosoftAuth.login(mcToken, executor);
       })
       .thenAccept(session -> {
-        mc.displayGuiScreen(new GuiAccountManager(previousScreen));
         SessionManager.setSession(session);
+        Notification.setNotification(
+          String.format("Successful login! (%s)", session.getUsername()),
+          TextFormatting.GREEN.getRGB()
+        );
+        actionPerformed(cancelButton);
       })
       .exceptionally(error -> {
         status = String.format("&c%s&r", error.getMessage());
@@ -85,7 +90,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
     );
     if (status != null) {
       drawCenteredString(
-        fontRendererObj, TextFormatting.translateAlternateColorCodes(status),
+        fontRendererObj, TextFormatting.translate(status),
         width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2, -1
       );
     }
@@ -94,15 +99,15 @@ public class GuiMicrosoftAuth extends GuiScreen {
 
   @Override
   protected void actionPerformed(GuiButton button) {
-    if (button.id == 0) {
+    if (button != null && button.id == 0) {
       mc.displayGuiScreen(new GuiAccountManager(previousScreen));
     }
   }
 
   @Override
-  protected void keyTyped(char typedChar, int keyCode) throws IOException {
-    if (keyCode != Keyboard.KEY_ESCAPE) {
-      super.keyTyped(typedChar, keyCode);
+  protected void keyTyped(char typedChar, int keyCode) {
+    if (keyCode == Keyboard.KEY_ESCAPE) {
+      actionPerformed(cancelButton);
     }
   }
 }

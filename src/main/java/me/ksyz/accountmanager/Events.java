@@ -2,52 +2,76 @@ package me.ksyz.accountmanager;
 
 import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.gui.GuiAccountManager;
+import me.ksyz.accountmanager.gui.GuiMicrosoftAuth;
+import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiMultiplayer;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSelectWorld;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.client.event.GuiScreenEvent.ActionPerformedEvent;
 import net.minecraftforge.client.event.GuiScreenEvent.InitGuiEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.apache.commons.lang3.StringUtils;
 
 public class Events {
   private static final Minecraft mc = Minecraft.getMinecraft();
 
   @SubscribeEvent
   public void onTick(TickEvent.RenderTickEvent t) {
-    GuiScreen guiScreen = Minecraft.getMinecraft().currentScreen;
+    if (mc.currentScreen == null) {
+      return;
+    }
+
+    // Current username
     if (
-      guiScreen instanceof GuiMultiplayer ||
-      guiScreen instanceof GuiSelectWorld ||
-      guiScreen instanceof GuiAccountManager
+      mc.currentScreen instanceof GuiSelectWorld ||
+      mc.currentScreen instanceof GuiMultiplayer ||
+      mc.currentScreen instanceof GuiAccountManager
     ) {
       GlStateManager.disableLighting();
       GlStateManager.pushMatrix();
       GlStateManager.scale(0.5, 0.5, 1.0);
-      guiScreen.drawString(
+      mc.currentScreen.drawString(
         mc.fontRendererObj,
-        TextFormatting.GRAY + "" + TextFormatting.BOLD + "Username" + TextFormatting.RESET,
+        TextFormatting.translate("&7&lUsername&r"),
         12, 16, -1
       );
       GlStateManager.popMatrix();
-      guiScreen.drawString(
+      mc.currentScreen.drawString(
         mc.fontRendererObj,
-        TextFormatting.DARK_AQUA + SessionManager.getSession().getUsername() + TextFormatting.RESET,
+        TextFormatting.translate(String.format("&3%s&r", SessionManager.getSession().getUsername())),
         6, 12, -1
       );
       GlStateManager.enableLighting();
+    }
+
+    // Notification
+    if (
+      mc.currentScreen instanceof GuiAccountManager ||
+      mc.currentScreen instanceof GuiMicrosoftAuth
+    ) {
+      final String notificationText = Notification.getNotificationText();
+      if (!StringUtils.isBlank(notificationText)) {
+        GlStateManager.disableLighting();
+        mc.currentScreen.drawCenteredString(
+          mc.fontRendererObj,
+          Notification.getNotificationText(),
+          mc.currentScreen.width / 2, 7, Notification.getColor()
+        );
+        GlStateManager.enableLighting();
+      }
     }
   }
 
   @SubscribeEvent
   public void initGuiEvent(InitGuiEvent.Post event) {
-    GuiScreen guiScreen = event.gui;
-    if (guiScreen instanceof GuiMultiplayer || guiScreen instanceof GuiSelectWorld) {
-      event.buttonList.add(new GuiButton(69, guiScreen.width - 106, 6, 100, 20, "Accounts"));
+    if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
+      event.buttonList.add(new GuiButton(
+        69, event.gui.width - 106, 6, 100, 20, "Accounts"
+      ));
     }
   }
 
@@ -55,7 +79,7 @@ public class Events {
   public void onClick(ActionPerformedEvent event) {
     if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
       if (event.button.id == 69) {
-        Minecraft.getMinecraft().displayGuiScreen(new GuiAccountManager(event.gui));
+        mc.displayGuiScreen(new GuiAccountManager(event.gui));
       }
     }
   }

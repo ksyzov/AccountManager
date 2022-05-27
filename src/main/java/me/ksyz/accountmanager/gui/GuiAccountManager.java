@@ -5,6 +5,7 @@ import me.ksyz.accountmanager.AccountManager;
 import me.ksyz.accountmanager.account.Account;
 import me.ksyz.accountmanager.account.LegacyAccount;
 import me.ksyz.accountmanager.account.MojangAccount;
+import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -12,6 +13,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.util.ResourceLocation;
+import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
 import java.awt.*;
@@ -28,7 +30,6 @@ public class GuiAccountManager extends GuiScreen {
   private int selectedAccount = -1;
 
   private GuiAccountManager.List guiAccountList;
-  private GuiNotification guiNotification;
   private GuiButton loginButton;
   private GuiButton editButton;
   private GuiButton deleteButton;
@@ -68,9 +69,6 @@ public class GuiAccountManager extends GuiScreen {
       6, width - 106, 6, 100, 20, "Microsoft"
     ));
 
-    // Notification
-    guiNotification = new GuiNotification();
-
     // Account List
     guiAccountList = new GuiAccountManager.List(mc);
     guiAccountList.registerScrollButtons(11, 12);
@@ -95,20 +93,15 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   public void onGuiClosed() {
-    Keyboard.enableRepeatEvents(false);
     am.save();
+    Notification.resetNotification();
+    Keyboard.enableRepeatEvents(false);
   }
 
   @Override
   public void drawScreen(int mouseX, int mouseY, float renderPartialTicks) {
     guiAccountList.drawScreen(mouseX, mouseY, renderPartialTicks);
     super.drawScreen(mouseX, mouseY, renderPartialTicks);
-
-    // Notification
-    String text = guiNotification.getNotificationText();
-    if (!"".equals(text)) {
-      this.drawCenteredString(fontRendererObj, text, this.width / 2, 7, guiNotification.getColor());
-    }
 
     // Action message
     this.drawCenteredString(
@@ -119,14 +112,6 @@ public class GuiAccountManager extends GuiScreen {
       TextFormatting.DARK_GRAY + ")" + TextFormatting.RESET,
       this.width / 2, 20, -1
     );
-
-    // Current username message
-    // this.drawCenteredString(
-    //   Minecraft.getMinecraft().fontRendererObj,
-    //   TextFormatting.ITALIC + "You are currently logged in as " +
-    //   TextFormatting.BOLD + mc.getSession().getUsername() + TextFormatting.RESET,
-    //   this.width / 2, this.height - 62, -1
-    // );
   }
 
   @Override
@@ -206,15 +191,17 @@ public class GuiAccountManager extends GuiScreen {
     Account acc = am.getAccounts().get(selectedAccount);
     try {
       am.login(acc);
-      guiNotification.setNotification(
-        "Successful login!" + (acc.getUsername().equals("") ? "" : " (" + acc.getUsername() + ")"),
-        -11141291
+      final String username = acc.getUsername();
+      Notification.setNotification(
+        String.format("Successful login!%s", StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)),
+        TextFormatting.GREEN.getRGB()
       );
       mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.pling")));
     } catch (AuthenticationException e) {
-      guiNotification.setNotification(
-        "Invalid credentials!" + (acc.getUsername().equals("") ? "" : " (" + acc.getUsername() + ")"),
-        -43691
+      final String username = acc.getUsername();
+      Notification.setNotification(
+        String.format("%s%s", e.getMessage(), StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)),
+        TextFormatting.RED.getRGB()
       );
       mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.bass")));
     }

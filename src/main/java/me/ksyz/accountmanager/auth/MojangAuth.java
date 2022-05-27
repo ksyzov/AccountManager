@@ -26,7 +26,7 @@ public class MojangAuth {
         Session.Type.MOJANG.toString()
       );
     } catch (AuthenticationException e) {
-      throw new AuthenticationException("Login failed");
+      throw new AuthenticationException("Invalid credentials!");
     }
   }
 }
