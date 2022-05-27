@@ -3,13 +3,9 @@ package me.ksyz.accountmanager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.authlib.exceptions.AuthenticationException;
 import me.ksyz.accountmanager.account.Account;
 import me.ksyz.accountmanager.account.LegacyAccount;
 import me.ksyz.accountmanager.account.MojangAccount;
-import me.ksyz.accountmanager.auth.LegacyAuth;
-import me.ksyz.accountmanager.auth.MojangAuth;
-import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.FileEncryption;
 import net.minecraft.client.Minecraft;
 
@@ -74,14 +70,6 @@ public class AccountManager {
       }
     }
     return false;
-  }
-
-  public void login(Account account) throws AuthenticationException {
-    if (account instanceof LegacyAccount) {
-      SessionManager.setSession(LegacyAuth.login((LegacyAccount) account));
-    } else if (account instanceof MojangAccount) {
-      SessionManager.setSession(MojangAuth.login((MojangAccount) account));
-    }
   }
 
   public void save() {

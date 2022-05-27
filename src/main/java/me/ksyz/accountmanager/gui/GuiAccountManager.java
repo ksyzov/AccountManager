@@ -1,18 +1,20 @@
 package me.ksyz.accountmanager.gui;
 
-import com.mojang.authlib.exceptions.AuthenticationException;
+import com.mojang.authlib.exceptions.InvalidCredentialsException;
 import me.ksyz.accountmanager.AccountManager;
 import me.ksyz.accountmanager.account.Account;
 import me.ksyz.accountmanager.account.LegacyAccount;
 import me.ksyz.accountmanager.account.MojangAccount;
+import me.ksyz.accountmanager.auth.LegacyAuth;
+import me.ksyz.accountmanager.auth.MojangAuth;
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSlot;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
@@ -22,17 +24,22 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class GuiAccountManager extends GuiScreen {
   private static final AccountManager am = AccountManager.getAccountManager();
 
   private final GuiScreen previousScreen;
-  private int selectedAccount = -1;
 
   private GuiAccountManager.List guiAccountList;
   private GuiButton loginButton;
   private GuiButton editButton;
   private GuiButton deleteButton;
+  private ExecutorService executor = null;
+  private CompletableFuture<Void> task = null;
+  private int selectedAccount = -1;
 
   public GuiAccountManager(GuiScreen previousScreen) {
     this.previousScreen = previousScreen;
@@ -93,6 +100,10 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   public void onGuiClosed() {
+    if (task != null && !task.isDone()) {
+      task.cancel(true);
+      executor.shutdownNow();
+    }
     am.save();
     Notification.resetNotification();
     Keyboard.enableRepeatEvents(false);
@@ -128,9 +139,7 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
       case Keyboard.KEY_RETURN:
-        if (loginButton.enabled) {
-          login();
-        }
+        actionPerformed(loginButton);
         break;
       case Keyboard.KEY_DELETE:
         if (deleteButton.enabled) {
@@ -159,10 +168,61 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   protected void actionPerformed(GuiButton button) {
+    if (button == null) {
+      return;
+    }
     if (button.enabled) {
       switch (button.id) {
         case 0:
-          login();
+          Account account = am.getAccounts().get(selectedAccount);
+          if (account instanceof LegacyAccount) {
+            Session session = LegacyAuth.login(account.getUsername());
+            SessionManager.setSession(session);
+            String username = session.getUsername();
+            account.setUsername(username);
+            Notification.setNotification(
+              String.format(
+                "Successful login!%s",
+                StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)
+              ),
+              TextFormatting.GREEN.getRGB()
+            );
+          }
+          if (account instanceof MojangAccount) {
+            if (task == null || task.isDone()) {
+              if (executor == null) {
+                executor = Executors.newSingleThreadExecutor();
+              }
+              MojangAccount mojangAccount = (MojangAccount) account;
+              task = MojangAuth
+                .login(mojangAccount.getEmail(), mojangAccount.getPassword(), executor)
+                .thenAccept(session -> {
+                  SessionManager.setSession(session);
+                  String username = session.getUsername();
+                  mojangAccount.setUsername(username);
+                  Notification.setNotification(
+                    String.format(
+                      "Successful login!%s",
+                      StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)
+                    ),
+                    TextFormatting.GREEN.getRGB()
+                  );
+                })
+                .exceptionally(error -> {
+                  String username = mojangAccount.getUsername();
+                  Notification.setNotification(
+                    String.format(
+                      "%s%s",
+                      error.getCause() instanceof InvalidCredentialsException ?
+                        "Invalid credentials!" : "Unable to login!",
+                      StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)
+                    ),
+                    TextFormatting.RED.getRGB()
+                  );
+                  return null;
+                });
+            }
+          }
           break;
         case 1:
           editAccount();
@@ -184,26 +244,6 @@ public class GuiAccountManager extends GuiScreen {
         default:
           guiAccountList.actionPerformed(button);
       }
-    }
-  }
-
-  private void login() {
-    Account acc = am.getAccounts().get(selectedAccount);
-    try {
-      am.login(acc);
-      final String username = acc.getUsername();
-      Notification.setNotification(
-        String.format("Successful login!%s", StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)),
-        TextFormatting.GREEN.getRGB()
-      );
-      mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.pling")));
-    } catch (AuthenticationException e) {
-      final String username = acc.getUsername();
-      Notification.setNotification(
-        String.format("%s%s", e.getMessage(), StringUtils.isBlank(username) ? "" : String.format(" (%s)", username)),
-        TextFormatting.RED.getRGB()
-      );
-      mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("note.bass")));
     }
   }
 
@@ -270,9 +310,8 @@ public class GuiAccountManager extends GuiScreen {
     protected void elementClicked(int slotIndex, boolean isDoubleClick, int mouseX, int mouseY) {
       GuiAccountManager.this.selectedAccount = slotIndex;
       GuiAccountManager.this.updateButtons();
-
-      if (isDoubleClick && loginButton.enabled) {
-        GuiAccountManager.this.login();
+      if (isDoubleClick) {
+        GuiAccountManager.this.actionPerformed(loginButton);
       }
     }
 
