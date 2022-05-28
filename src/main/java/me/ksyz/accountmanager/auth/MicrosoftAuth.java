@@ -153,7 +153,7 @@ public final class MicrosoftAuth {
           .addParameter("redirect_uri", String.format("http://localhost:%d/callback", server.getAddress().getPort()))
           .addParameter("scope", "XboxLive.signin XboxLive.offline_access")
           .addParameter("state", state)
-          .addParameter("prompt", "select_account"); // TODO
+          .addParameter("prompt", "select_account");
         final URI uri = uriBuilder.build();
 
         // Navigate to the Microsoft login in browser

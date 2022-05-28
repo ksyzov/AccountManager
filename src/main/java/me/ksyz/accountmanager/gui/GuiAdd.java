@@ -1,29 +1,20 @@
 package me.ksyz.accountmanager.gui;
 
+import me.ksyz.accountmanager.Account;
 import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.account.LegacyAccount;
-import me.ksyz.accountmanager.account.MojangAccount;
 import net.minecraft.client.gui.GuiScreen;
 
 public class GuiAdd extends GuiAbstractInput {
-  private static final AccountManager am = AccountManager.getAccountManager();
-
-  public GuiAdd(GuiScreen previousScreen) {
+  public GuiAdd(final GuiScreen previousScreen) {
     super(previousScreen, "Add");
   }
 
   @Override
-  public boolean isAccountInList() {
-    return am.isAccountInList(getUsername());
-  }
-
-  @Override
-  public boolean complete() {
-    if (getPassword().equals("")) {
-      am.getAccounts().add(new LegacyAccount(getUsername()));
+  public void complete() {
+    if (getPassword().isEmpty()) {
+      AccountManager.getAccounts().add(new Account(getUsername()));
     } else {
-      am.getAccounts().add(new MojangAccount(getUsername(), getPassword()));
+      AccountManager.getAccounts().add(new Account(getUsername(), getPassword()));
     }
-    return true;
   }
 }

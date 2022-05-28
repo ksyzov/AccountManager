@@ -31,7 +31,7 @@ public class SessionManager {
     return mc.getSession();
   }
 
-  public static void setSession(Session session) {
+  public static void setSession(final Session session) {
     try {
       getSessionField().set(mc, session);
     } catch (IllegalAccessException e) {

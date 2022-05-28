@@ -15,7 +15,7 @@ public class Notification {
     return "";
   }
 
-  public static void setNotification(String msg, int color) {
+  public static void setNotification(final String msg, final int color) {
     Notification.msg = msg;
     Notification.color = color;
     Notification.startTime = System.currentTimeMillis();

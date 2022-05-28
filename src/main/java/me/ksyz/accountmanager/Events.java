@@ -20,7 +20,7 @@ public class Events {
   private static final Minecraft mc = Minecraft.getMinecraft();
 
   @SubscribeEvent
-  public void onTick(TickEvent.RenderTickEvent t) {
+  public void onTick(final TickEvent.RenderTickEvent event) {
     if (mc.currentScreen == null) {
       return;
     }
@@ -36,13 +36,15 @@ public class Events {
       GlStateManager.scale(0.5, 0.5, 1.0);
       mc.currentScreen.drawString(
         mc.fontRendererObj,
-        TextFormatting.translate("&7&lUsername&r"),
+        TextFormatting.translate("&r&7&lUsername&r"),
         12, 16, -1
       );
       GlStateManager.popMatrix();
       mc.currentScreen.drawString(
         mc.fontRendererObj,
-        TextFormatting.translate(String.format("&3%s&r", SessionManager.getSession().getUsername())),
+        TextFormatting.translate(String.format(
+          "&r&3%s&r", SessionManager.getSession().getUsername()
+        )),
         6, 12, -1
       );
       GlStateManager.enableLighting();
@@ -67,7 +69,7 @@ public class Events {
   }
 
   @SubscribeEvent
-  public void initGuiEvent(InitGuiEvent.Post event) {
+  public void initGuiEvent(final InitGuiEvent.Post event) {
     if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
       event.buttonList.add(new GuiButton(
         69, event.gui.width - 106, 6, 100, 20, "Accounts"
@@ -76,7 +78,7 @@ public class Events {
   }
 
   @SubscribeEvent
-  public void onClick(ActionPerformedEvent event) {
+  public void onClick(final ActionPerformedEvent event) {
     if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
       if (event.button.id == 69) {
         mc.displayGuiScreen(new GuiAccountManager(event.gui));

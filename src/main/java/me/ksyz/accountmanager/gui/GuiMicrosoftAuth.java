@@ -20,7 +20,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
 
-  public GuiMicrosoftAuth(GuiScreen previousScreen) {
+  public GuiMicrosoftAuth(final GuiScreen previousScreen) {
     this.previousScreen = previousScreen;
   }
 
@@ -31,7 +31,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
       0, width / 2 - 100, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, "Cancel"
     ));
 
-    if (task == null || task.isDone()) {
+    if (task == null) {
       if (executor == null) {
         executor = Executors.newSingleThreadExecutor();
       }
@@ -86,6 +86,8 @@ public class GuiMicrosoftAuth extends GuiScreen {
   @Override
   public void drawScreen(int mouseX, int mouseY, float partialTicks) {
     drawDefaultBackground();
+    super.drawScreen(mouseX, mouseY, partialTicks);
+
     drawCenteredString(
       fontRendererObj, "Microsoft Authentication",
       width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2 - fontRendererObj.FONT_HEIGHT * 2, 11184810
@@ -96,20 +98,19 @@ public class GuiMicrosoftAuth extends GuiScreen {
         width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2, -1
       );
     }
-    super.drawScreen(mouseX, mouseY, partialTicks);
-  }
-
-  @Override
-  protected void actionPerformed(GuiButton button) {
-    if (button != null && button.id == 0) {
-      mc.displayGuiScreen(new GuiAccountManager(previousScreen));
-    }
   }
 
   @Override
   protected void keyTyped(char typedChar, int keyCode) {
     if (keyCode == Keyboard.KEY_ESCAPE) {
       actionPerformed(cancelButton);
+    }
+  }
+
+  @Override
+  protected void actionPerformed(GuiButton button) {
+    if (button != null && button.id == 0) {
+      mc.displayGuiScreen(new GuiAccountManager(previousScreen));
     }
   }
 }
