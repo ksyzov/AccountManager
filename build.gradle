@@ -30,6 +30,7 @@ minecraft {
     runDir = "run"
     mappings = "stable_22"
     makeObfSourceJar = false
+    replace("@VERSION@": modVersion)
 }
 
 processResources {
@@ -41,5 +42,11 @@ processResources {
     }
     from(sourceSets.main.resources.srcDirs) {
         exclude "mcmod.info"
+    }
+}
+
+sourceSets {
+    main {
+        output.resourcesDir = java.outputDir
     }
 }
