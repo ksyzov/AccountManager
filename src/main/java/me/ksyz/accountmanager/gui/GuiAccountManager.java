@@ -23,19 +23,25 @@ import java.util.concurrent.Executors;
 
 public class GuiAccountManager extends GuiScreen {
   private final GuiScreen previousScreen;
+  private final boolean blockMicrosoftButton;
+  private final long startTime;
 
   private GuiButton loginButton = null;
   private GuiButton editButton = null;
   private GuiButton importButton = null;
   private GuiButton deleteButton = null;
   private GuiButton cancelButton = null;
+  private GuiButton microsoftButton = null;
   private GuiAccountList guiAccountList = null;
+  private String status = null;
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
   private int selectedAccount = -1;
 
-  public GuiAccountManager(final GuiScreen previousScreen) {
+  public GuiAccountManager(final GuiScreen previousScreen, final boolean blockMicrosoftButton) {
     this.previousScreen = previousScreen;
+    this.blockMicrosoftButton = blockMicrosoftButton;
+    this.startTime = System.currentTimeMillis();
   }
 
   @Override
@@ -45,34 +51,35 @@ public class GuiAccountManager extends GuiScreen {
 
     // Top Row
     buttonList.add(loginButton = new GuiButton(
-      0, width / 2 - 154 - 10, height - 52, 120, 20, "Login"
+      0, width / 2 - 150 - 4, height - 52, 100, 20, "Login"
     ));
     buttonList.add(editButton = new GuiButton(
-      1, width / 2 - 40, height - 52, 80, 20, "Edit"
+      1, width / 2 - 50, height - 52, 100, 20, "Edit"
     ));
     buttonList.add(new GuiButton(
-      2, width / 2 + 4 + 40, height - 52, 120, 20, "Add"
+      2, width / 2 + 50 + 4, height - 52, 100, 20, "Add"
     ));
 
     // Bottom Row
     buttonList.add(importButton = new GuiButton(
-      3, width / 2 - 154 - 10, height - 28, 110, 20, "Import"
+      3, width / 2 - 150 - 4, height - 28, 100, 20, "Import"
     ));
     buttonList.add(deleteButton = new GuiButton(
       4, width / 2 - 50, height - 28, 100, 20, "Delete"
     ));
     buttonList.add(cancelButton = new GuiButton(
-      5, width / 2 + 4 + 50, height - 28, 110, 20, "Cancel"
+      5, width / 2 + 50 + 4, height - 28, 100, 20, "Cancel"
     ));
 
     // Microsoft Authentication
-    buttonList.add(new GuiButton(
+    buttonList.add(microsoftButton = new GuiButton(
       6, width - 106, 6, 100, 20, "Microsoft"
     ));
 
     // Account List
     guiAccountList = new GuiAccountList(mc);
     guiAccountList.registerScrollButtons(11, 12);
+
     updateButtons();
   }
 
@@ -93,13 +100,12 @@ public class GuiAccountManager extends GuiScreen {
   }
 
   public void updateButtons() {
-    loginButton.enabled = (
-      selectedAccount >= 0 && !SessionManager.getSession().getUsername().equals(
-        AccountManager.getAccounts().get(selectedAccount).getUsername()
-      )
-    );
+    loginButton.enabled = selectedAccount >= 0 && (task == null || task.isDone());
     editButton.enabled = selectedAccount >= 0;
     deleteButton.enabled = selectedAccount >= 0;
+    if (blockMicrosoftButton) {
+      microsoftButton.enabled = System.currentTimeMillis() - startTime >= 1000L;
+    }
   }
 
   @Override
@@ -107,7 +113,6 @@ public class GuiAccountManager extends GuiScreen {
     guiAccountList.drawScreen(mouseX, mouseY, renderPartialTicks);
     super.drawScreen(mouseX, mouseY, renderPartialTicks);
 
-    // Action message
     drawCenteredString(
       fontRendererObj,
       TextFormatting.translate(String.format(
@@ -115,6 +120,12 @@ public class GuiAccountManager extends GuiScreen {
       )),
       width / 2, 20, -1
     );
+    if (status != null) {
+      drawCenteredString(
+        fontRendererObj, TextFormatting.translate(status),
+        width / 2, 7, (0x80 << 24) | (TextFormatting.WHITE.getRGB() & 0x00FFFFFF)
+      );
+    }
   }
 
   @Override
@@ -175,8 +186,8 @@ public class GuiAccountManager extends GuiScreen {
           final Account account = AccountManager.getAccounts().get(selectedAccount);
           if (account.getPassword().isEmpty()) {
             final Session session = LegacyAuth.login(account.getUsername());
-            final String username = session.getUsername();
             SessionManager.setSession(session);
+            final String username = session.getUsername();
             Notification.setNotification(
               String.format(
                 "Successful login!%s",
@@ -186,14 +197,17 @@ public class GuiAccountManager extends GuiScreen {
             );
           } else {
             if (task == null || task.isDone()) {
+              Notification.resetNotification();
               if (executor == null) {
                 executor = Executors.newSingleThreadExecutor();
               }
+              status = "&r&oLogging in...&r";
               task = MojangAuth
                 .login(account.getEmail(), account.getPassword(), executor)
                 .thenAccept(session -> {
-                  final String username = session.getUsername();
                   SessionManager.setSession(session);
+                  status = null;
+                  final String username = session.getUsername();
                   account.setUsername(username);
                   Notification.setNotification(
                     String.format(
@@ -204,6 +218,7 @@ public class GuiAccountManager extends GuiScreen {
                   );
                 })
                 .exceptionally(error -> {
+                  status = null;
                   final String username = account.getUsername();
                   Notification.setNotification(
                     String.format(
@@ -322,7 +337,7 @@ public class GuiAccountManager extends GuiScreen {
       if (account.getPassword().isEmpty()) {
         info = "&8Offline&r";
       } else {
-        info = String.format("&8%s&r", account.getEmail());
+        info = String.format("&7%s&r", account.getEmail());
       }
       GuiAccountManager.this.drawString(
         GuiAccountManager.this.fontRendererObj, TextFormatting.translate(info),

@@ -6,6 +6,7 @@ import me.ksyz.accountmanager.gui.GuiMicrosoftAuth;
 import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiMultiplayer;
 import net.minecraft.client.gui.GuiSelectWorld;
@@ -32,20 +33,32 @@ public class Events {
       mc.currentScreen instanceof GuiAccountManager
     ) {
       GlStateManager.disableLighting();
+      final String label = TextFormatting.translate("&r&7&lUsername&r");
+      final String username = TextFormatting.translate(String.format(
+        "&r&3%s&r", SessionManager.getSession().getUsername()
+      ));
+      final int width = Math.max(
+        mc.fontRendererObj.getStringWidth(label) / 2,
+        mc.fontRendererObj.getStringWidth(username)
+      );
+      Gui.drawRect(
+        9 - 3, 9 - 3, 9 + width + 3, 9 + 14 + 3,
+        0x80000000
+      );
+      Gui.drawRect(
+        9 - 3, 9 - 3, 9 + width + 3, 9 - 3 + 1,
+        0xFF000000
+      );
       GlStateManager.pushMatrix();
       GlStateManager.scale(0.5, 0.5, 1.0);
       mc.currentScreen.drawString(
-        mc.fontRendererObj,
-        TextFormatting.translate("&r&7&lUsername&r"),
-        12, 16, -1
+        mc.fontRendererObj, label,
+        9 * 2, 9 * 2, -1
       );
       GlStateManager.popMatrix();
       mc.currentScreen.drawString(
-        mc.fontRendererObj,
-        TextFormatting.translate(String.format(
-          "&r&3%s&r", SessionManager.getSession().getUsername()
-        )),
-        6, 12, -1
+        mc.fontRendererObj, username,
+        9, 9 + 5, -1
       );
       GlStateManager.enableLighting();
     }
@@ -59,8 +72,7 @@ public class Events {
       if (!StringUtils.isBlank(notificationText)) {
         GlStateManager.disableLighting();
         mc.currentScreen.drawCenteredString(
-          mc.fontRendererObj,
-          Notification.getNotificationText(),
+          mc.fontRendererObj, notificationText,
           mc.currentScreen.width / 2, 7, Notification.getColor()
         );
         GlStateManager.enableLighting();
@@ -70,7 +82,7 @@ public class Events {
 
   @SubscribeEvent
   public void initGuiEvent(final InitGuiEvent.Post event) {
-    if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
+    if (event.gui instanceof GuiSelectWorld || event.gui instanceof GuiMultiplayer) {
       event.buttonList.add(new GuiButton(
         69, event.gui.width - 106, 6, 100, 20, "Accounts"
       ));
@@ -79,9 +91,9 @@ public class Events {
 
   @SubscribeEvent
   public void onClick(final ActionPerformedEvent event) {
-    if (event.gui instanceof GuiMultiplayer || event.gui instanceof GuiSelectWorld) {
+    if (event.gui instanceof GuiSelectWorld || event.gui instanceof GuiMultiplayer) {
       if (event.button.id == 69) {
-        mc.displayGuiScreen(new GuiAccountManager(event.gui));
+        mc.displayGuiScreen(new GuiAccountManager(event.gui, true));
       }
     }
   }

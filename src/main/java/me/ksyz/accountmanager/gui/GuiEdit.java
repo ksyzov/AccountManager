@@ -5,35 +5,36 @@ import me.ksyz.accountmanager.AccountManager;
 import net.minecraft.client.gui.GuiScreen;
 
 class GuiEdit extends GuiAbstractInput {
-  private final String username;
-  private final String password;
   private final int selected;
 
   public GuiEdit(final GuiScreen previousScreen, final int selected) {
     super(previousScreen, "Edit");
-    final Account account = AccountManager.getAccounts().get(selected);
-    if (account.getPassword().isEmpty()) {
-      this.username = account.getUsername();
-    } else {
-      this.username = account.getEmail();
-    }
-    this.password = account.getPassword();
     this.selected = selected;
   }
 
   @Override
   public void initGui() {
     super.initGui();
-    setUsername(username);
-    setPassword(password);
+    final Account account = AccountManager.getAccounts().get(selected);
+    if (account.getPassword().isEmpty()) {
+      setUsername(account.getUsername());
+    } else {
+      setUsername(account.getEmail());
+    }
+    setPassword(account.getPassword());
   }
 
   @Override
   public void complete() {
     if (getPassword().isEmpty()) {
-      AccountManager.getAccounts().set(selected, new Account(getUsername()));
+      AccountManager.getAccounts().set(
+        selected, new Account(getUsername())
+      );
     } else {
-      AccountManager.getAccounts().set(selected, new Account(getUsername(), getPassword()));
+      final Account account = AccountManager.getAccounts().get(selected);
+      AccountManager.getAccounts().set(
+        selected, new Account(getUsername(), getPassword(), account.getUsername())
+      );
     }
   }
 }

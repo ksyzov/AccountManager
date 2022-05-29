@@ -122,7 +122,7 @@ public abstract class GuiAbstractInput extends GuiScreen {
         }
         break;
         case 3: {
-          mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+          mc.displayGuiScreen(new GuiAccountManager(previousScreen, false));
         }
         break;
       }

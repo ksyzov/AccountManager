@@ -35,33 +35,34 @@ public class GuiMicrosoftAuth extends GuiScreen {
       if (executor == null) {
         executor = Executors.newSingleThreadExecutor();
       }
-      status = "Check your browser to continue...";
+      status = "&rCheck your browser to continue...&r";
       task = MicrosoftAuth
         .acquireMSAuthCode(success -> "Close this window and return to Minecraft!", executor)
         .thenComposeAsync(msAuthCode -> {
-          status = "Acquiring Microsoft access token";
+          status = "&rAcquiring Microsoft access token&r";
           return MicrosoftAuth.acquireMSAccessToken(msAuthCode, executor);
         })
         .thenComposeAsync(msAccessToken -> {
-          status = "Acquiring Xbox access token";
+          status = "&rAcquiring Xbox access token&r";
           return MicrosoftAuth.acquireXboxAccessToken(msAccessToken, executor);
         })
         .thenComposeAsync(xboxAccessToken -> {
-          status = "Acquiring Xbox XSTS token";
+          status = "&rAcquiring Xbox XSTS token&r";
           return MicrosoftAuth.acquireXboxXstsToken(xboxAccessToken, executor);
         })
         .thenComposeAsync(xboxXstsData -> {
-          status = "Acquiring Minecraft access token";
+          status = "&rAcquiring Minecraft access token&r";
           return MicrosoftAuth.acquireMCAccessToken(
             xboxXstsData.get("Token"), xboxXstsData.get("uhs"), executor
           );
         })
         .thenComposeAsync(mcToken -> {
-          status = "Fetching your Minecraft profile";
+          status = "&rFetching your Minecraft profile&r";
           return MicrosoftAuth.login(mcToken, executor);
         })
         .thenAccept(session -> {
           SessionManager.setSession(session);
+          status = null;
           Notification.setNotification(
             String.format("Successful login! (%s)", session.getUsername()),
             TextFormatting.GREEN.getRGB()
@@ -110,7 +111,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   @Override
   protected void actionPerformed(GuiButton button) {
     if (button != null && button.id == 0) {
-      mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+      mc.displayGuiScreen(new GuiAccountManager(previousScreen, false));
     }
   }
 }
