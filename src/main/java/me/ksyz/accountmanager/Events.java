@@ -43,11 +43,11 @@ public class Events {
       );
       Gui.drawRect(
         9 - 3, 9 - 3, 9 + width + 3, 9 + 14 + 3,
-        0x80000000
+        0x70000000
       );
       Gui.drawRect(
         9 - 3, 9 - 3, 9 + width + 3, 9 - 3 + 1,
-        0xFF000000
+        0x70000000
       );
       GlStateManager.pushMatrix();
       GlStateManager.scale(0.5, 0.5, 1.0);
