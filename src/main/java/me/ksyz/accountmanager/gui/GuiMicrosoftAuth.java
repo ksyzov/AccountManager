@@ -4,6 +4,7 @@ import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import org.lwjgl.input.Keyboard;
@@ -17,6 +18,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
 
   private GuiButton cancelButton = null;
   private String status = null;
+  private String cause = null;
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
 
@@ -71,6 +73,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
         })
         .exceptionally(error -> {
           status = String.format("&c%s&r", error.getMessage());
+          cause = String.format("&c&o%s&r", error.getCause().getMessage());
           return null;
         });
     }
@@ -97,6 +100,23 @@ public class GuiMicrosoftAuth extends GuiScreen {
       drawCenteredString(
         fontRendererObj, TextFormatting.translate(status),
         width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2, -1
+      );
+    }
+    if (cause != null) {
+      final String causeText = TextFormatting.translate(cause);
+      Gui.drawRect(
+        0, height - 2 - fontRendererObj.FONT_HEIGHT - 2,
+        2 + mc.fontRendererObj.getStringWidth(causeText) + 2, height,
+        0x64000000
+      );
+      Gui.drawRect(
+        0, height - 1,
+        2 + mc.fontRendererObj.getStringWidth(causeText) + 2, height,
+        0xFF000000
+      );
+      drawString(
+        fontRendererObj, TextFormatting.translate(cause),
+        2, height - 2 - fontRendererObj.FONT_HEIGHT, -1
       );
     }
   }
