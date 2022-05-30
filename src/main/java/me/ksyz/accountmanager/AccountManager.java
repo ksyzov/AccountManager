@@ -10,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,21 +21,6 @@ public class AccountManager {
 
   public static ArrayList<Account> getAccounts() {
     return accounts;
-  }
-
-  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  public static boolean contains(final String search) {
-    for (Account account : accounts) {
-      final String username = account.getUsername();
-      if (username.equals(search)) {
-        return true;
-      }
-      final String email = account.getEmail();
-      if (email.equals(search)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   public static void init() {
@@ -83,5 +69,24 @@ public class AccountManager {
         json.get("username").getAsString()
       ));
     }
+  }
+
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+  public static boolean contains(final String search) {
+    for (Account account : accounts) {
+      final String username = account.getUsername();
+      if (username.equals(search)) {
+        return true;
+      }
+      final String email = account.getEmail();
+      if (email.equals(search)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static void swap(final int i, final int j) {
+    Collections.swap(accounts, i, j);
   }
 }

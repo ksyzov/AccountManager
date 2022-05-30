@@ -140,12 +140,18 @@ public class GuiAccountManager extends GuiScreen {
       case Keyboard.KEY_UP: {
         if (selectedAccount > 0) {
           --selectedAccount;
+          if (isCtrlKeyDown()) {
+            AccountManager.swap(selectedAccount, selectedAccount + 1);
+          }
         }
       }
       break;
       case Keyboard.KEY_DOWN: {
         if (selectedAccount < AccountManager.getAccounts().size() - 1) {
           ++selectedAccount;
+          if (isCtrlKeyDown()) {
+            AccountManager.swap(selectedAccount, selectedAccount - 1);
+          }
         }
       }
       break;
