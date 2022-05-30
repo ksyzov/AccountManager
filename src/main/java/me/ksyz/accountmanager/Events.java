@@ -42,12 +42,12 @@ public class Events {
         mc.fontRendererObj.getStringWidth(username)
       );
       Gui.drawRect(
-        9 - 3, 9 - 3, 9 + width + 3, 9 + 14 + 3,
-        0x70000000
+        9 - 3, 9 - 3, 9 + width + 3, 9 + 5 + mc.fontRendererObj.FONT_HEIGHT + 3,
+        0x64000000
       );
       Gui.drawRect(
         9 - 3, 9 - 3, 9 + width + 3, 9 - 3 + 1,
-        0x70000000
+        0xFF000000
       );
       GlStateManager.pushMatrix();
       GlStateManager.scale(0.5, 0.5, 1.0);
