@@ -29,17 +29,16 @@ public class GuiMicrosoftAuth extends GuiScreen {
   @Override
   public void initGui() {
     buttonList.clear();
+
     buttonList.add(cancelButton = new GuiButton(
       0, width / 2 - 100, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, "Cancel"
     ));
-
     if (task == null) {
       if (executor == null) {
         executor = Executors.newSingleThreadExecutor();
       }
       status = "&rCheck your browser to continue...&r";
-      task = MicrosoftAuth
-        .acquireMSAuthCode(success -> "Close this window and return to Minecraft!", executor)
+      task = MicrosoftAuth.acquireMSAuthCode(executor)
         .thenComposeAsync(msAuthCode -> {
           status = "&rAcquiring Microsoft access token&r";
           return MicrosoftAuth.acquireMSAccessToken(msAuthCode, executor);

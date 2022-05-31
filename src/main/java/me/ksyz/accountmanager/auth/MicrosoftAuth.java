@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
 import me.ksyz.accountmanager.utils.SystemUtils;
 import net.minecraft.util.Session;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
@@ -19,7 +20,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +31,6 @@ import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -61,18 +61,14 @@ public final class MicrosoftAuth {
    * <p>NB: You must manually interrupt the executor thread if the
    * completable future is cancelled!
    *
-   * @param browserMessage function that takes true if success, and returns
-   *                       a message to be shown in the browser after
-   *                       logging in
-   * @param executor       executor to run the login task on
+   * @param executor executor to run the login task on
    * @return completable future for the Microsoft auth token
-   * @see #acquireMSAuthCode(Consumer, Function, Executor)
+   * @see #acquireMSAuthCode(Consumer, Executor)
    */
   public static CompletableFuture<String> acquireMSAuthCode(
-    final Function<Boolean, String> browserMessage,
     final Executor executor
   ) {
-    return acquireMSAuthCode(SystemUtils::openWebLink, browserMessage, executor);
+    return acquireMSAuthCode(SystemUtils::openWebLink, executor);
   }
 
   /**
@@ -82,16 +78,12 @@ public final class MicrosoftAuth {
    * <p>NB: You must manually interrupt the executor thread if the
    * completable future is cancelled!
    *
-   * @param browserAction  consumer that opens the generated login url
-   * @param browserMessage function that takes true if success, and returns
-   *                       a message to be shown in the browser after
-   *                       logging in
-   * @param executor       executor to run the login task on
+   * @param browserAction consumer that opens the generated login url
+   * @param executor      executor to run the login task on
    * @return completable future for the Microsoft auth token
    */
   public static CompletableFuture<String> acquireMSAuthCode(
     final Consumer<URI> browserAction,
-    final Function<Boolean, String> browserMessage,
     final Executor executor
   ) {
     return CompletableFuture.supplyAsync(() -> {
@@ -134,11 +126,12 @@ public final class MicrosoftAuth {
           }
 
           // Send a response informing that the browser may now be closed
-          final byte[] message = browserMessage.apply(errorMsg.get() == null).getBytes();
-          exchange.sendResponseHeaders(200, message.length);
-          final OutputStream res = exchange.getResponseBody();
-          res.write(message);
-          res.close();
+          final InputStream stream = MicrosoftAuth.class.getResourceAsStream("/callback.html");
+          final byte[] response = stream != null ? IOUtils.toByteArray(stream) : new byte[0];
+          exchange.getResponseHeaders().add("Content-Type", "text/html");
+          exchange.sendResponseHeaders(200, response.length);
+          exchange.getResponseBody().write(response);
+          exchange.getResponseBody().close();
 
           // Let the caller thread know that the request has been handled
           latch.countDown();
