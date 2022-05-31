@@ -1,8 +1,6 @@
 package me.ksyz.accountmanager.auth;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
 import me.ksyz.accountmanager.utils.SystemUtils;
 import net.minecraft.util.Session;
@@ -262,22 +260,17 @@ public final class MicrosoftAuth {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
         // Build a new HTTP request
         final HttpPost request = new HttpPost(URI.create("https://user.auth.xboxlive.com/user/authenticate"));
+        final JsonObject entity = new JsonObject();
+        final JsonObject properties = new JsonObject();
+        properties.addProperty("AuthMethod", "RPS");
+        properties.addProperty("SiteName", "user.auth.xboxlive.com");
+        properties.addProperty("RpsTicket", String.format("d=%s", accessToken));
+        entity.add("Properties", properties);
+        entity.addProperty("RelyingParty", "http://auth.xboxlive.com");
+        entity.addProperty("TokenType", "JWT");
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/json");
-        request.setEntity(new StringEntity(
-          String.format(
-            "{" +
-            "\"Properties\": {" +
-            "\"AuthMethod\": \"RPS\"," +
-            "\"SiteName\": \"user.auth.xboxlive.com\"," +
-            "\"RpsTicket\": \"d=%s\"" +
-            "}," +
-            "\"RelyingParty\": \"http://auth.xboxlive.com\"," +
-            "\"TokenType\": \"JWT\"" +
-            "}",
-            accessToken
-          )
-        ));
+        request.setEntity(new StringEntity(entity.toString()));
 
         // Send the request on the HTTP client
         final org.apache.http.HttpResponse res = client.execute(request);
@@ -324,21 +317,18 @@ public final class MicrosoftAuth {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
         // Build a new HTTP request
         final HttpPost request = new HttpPost("https://xsts.auth.xboxlive.com/xsts/authorize");
+        final JsonObject entity = new JsonObject();
+        final JsonObject properties = new JsonObject();
+        final JsonArray userTokens = new JsonArray();
+        userTokens.add(new JsonPrimitive(accessToken));
+        properties.addProperty("SandboxId", "RETAIL");
+        properties.add("UserTokens", userTokens);
+        entity.add("Properties", properties);
+        entity.addProperty("RelyingParty", "rp://api.minecraftservices.com/");
+        entity.addProperty("TokenType", "JWT");
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/json");
-        request.setEntity(new StringEntity(
-          String.format(
-            "{" +
-            "\"Properties\": {" +
-            "\"SandboxId\": \"RETAIL\"," +
-            "\"UserTokens\": [\"%s\"]" +
-            "}," +
-            "\"RelyingParty\": \"rp://api.minecraftservices.com/\"," +
-            "\"TokenType\": \"JWT\"" +
-            "}",
-            accessToken
-          )
-        ));
+        request.setEntity(new StringEntity(entity.toString()));
 
         // Send the request on the HTTP client
         final org.apache.http.HttpResponse res = client.execute(request);
