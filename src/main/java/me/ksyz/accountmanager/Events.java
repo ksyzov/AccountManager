@@ -33,7 +33,7 @@ public class Events {
       mc.currentScreen instanceof GuiAccountManager
     ) {
       GlStateManager.disableLighting();
-      final String label = TextFormatting.translate("&r&7&lUsername&r");
+      final String label = TextFormatting.translate("&r&7Username&r");
       final String username = TextFormatting.translate(String.format(
         "&r&3%s&r", SessionManager.getSession().getUsername()
       ));
