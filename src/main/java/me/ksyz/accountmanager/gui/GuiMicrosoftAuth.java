@@ -1,5 +1,7 @@
 package me.ksyz.accountmanager.gui;
 
+import me.ksyz.accountmanager.AccountManager;
+import me.ksyz.accountmanager.auth.Account;
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
@@ -12,6 +14,7 @@ import org.lwjgl.input.Keyboard;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GuiMicrosoftAuth extends GuiScreen {
   private final GuiScreen previousScreen;
@@ -22,7 +25,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
 
-  public GuiMicrosoftAuth(final GuiScreen previousScreen) {
+  public GuiMicrosoftAuth(GuiScreen previousScreen) {
     this.previousScreen = previousScreen;
   }
 
@@ -37,42 +40,49 @@ public class GuiMicrosoftAuth extends GuiScreen {
       if (executor == null) {
         executor = Executors.newSingleThreadExecutor();
       }
-      status = "&rCheck your browser to continue...&r";
+      AtomicReference<String> refreshToken = new AtomicReference<>("");
+      AtomicReference<String> accessToken = new AtomicReference<>("");
+      status = "&fCheck your browser to continue...&r";
       task = MicrosoftAuth.acquireMSAuthCode(executor)
         .thenComposeAsync(msAuthCode -> {
-          status = "&rAcquiring Microsoft access token&r";
-          return MicrosoftAuth.acquireMSAccessToken(msAuthCode, executor);
+          status = "&fAcquiring Microsoft access tokens&r";
+          return MicrosoftAuth.acquireMSAccessTokens(msAuthCode, executor);
         })
-        .thenComposeAsync(msAccessToken -> {
-          status = "&rAcquiring Xbox access token&r";
-          return MicrosoftAuth.acquireXboxAccessToken(msAccessToken, executor);
+        .thenComposeAsync(msAccessTokens -> {
+          status = "&fAcquiring Xbox access token&r";
+          refreshToken.set(msAccessTokens.get("refresh_token"));
+          return MicrosoftAuth.acquireXboxAccessToken(msAccessTokens.get("access_token"), executor);
         })
         .thenComposeAsync(xboxAccessToken -> {
-          status = "&rAcquiring Xbox XSTS token&r";
+          status = "&fAcquiring Xbox XSTS token&r";
           return MicrosoftAuth.acquireXboxXstsToken(xboxAccessToken, executor);
         })
         .thenComposeAsync(xboxXstsData -> {
-          status = "&rAcquiring Minecraft access token&r";
+          status = "&fAcquiring Minecraft access token&r";
           return MicrosoftAuth.acquireMCAccessToken(
             xboxXstsData.get("Token"), xboxXstsData.get("uhs"), executor
           );
         })
         .thenComposeAsync(mcToken -> {
-          status = "&rFetching your Minecraft profile&r";
+          status = "&fFetching your Minecraft profile&r";
+          accessToken.set(mcToken);
           return MicrosoftAuth.login(mcToken, executor);
         })
         .thenAccept(session -> {
-          SessionManager.setSession(session);
           status = null;
-          Notification.setNotification(
-            String.format("Successful login! (%s)", session.getUsername()),
-            TextFormatting.GREEN.getRGB()
-          );
-          actionPerformed(cancelButton);
+          AccountManager.add(new Account(
+            refreshToken.get(), accessToken.get(), session.getUsername(), System.currentTimeMillis()
+          ));
+          AccountManager.save();
+          SessionManager.setSession(session);
+          mc.displayGuiScreen(new GuiAccountManager(previousScreen,
+            new Notification(TextFormatting.translate(String.format(
+              "&aSuccessful login! (%s)&r", session.getUsername()
+            )), 5000L)));
         })
         .exceptionally(error -> {
           status = String.format("&c%s&r", error.getMessage());
-          cause = String.format("&c&o%s&r", error.getCause().getMessage());
+          cause = String.format("&c%s&r", error.getCause().getMessage());
           return null;
         });
     }
@@ -95,27 +105,24 @@ public class GuiMicrosoftAuth extends GuiScreen {
       fontRendererObj, "Microsoft Authentication",
       width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2 - fontRendererObj.FONT_HEIGHT * 2, 11184810
     );
+
     if (status != null) {
       drawCenteredString(
         fontRendererObj, TextFormatting.translate(status),
         width / 2, height / 2 - fontRendererObj.FONT_HEIGHT / 2, -1
       );
     }
+
     if (cause != null) {
-      final String causeText = TextFormatting.translate(cause);
+      String causeText = TextFormatting.translate(cause);
       Gui.drawRect(
-        0, height - 2 - fontRendererObj.FONT_HEIGHT - 2,
-        2 + mc.fontRendererObj.getStringWidth(causeText) + 2, height,
+        0, height - 2 - fontRendererObj.FONT_HEIGHT - 3,
+        3 + mc.fontRendererObj.getStringWidth(causeText) + 3, height,
         0x64000000
-      );
-      Gui.drawRect(
-        0, height - 1,
-        2 + mc.fontRendererObj.getStringWidth(causeText) + 2, height,
-        0xFF000000
       );
       drawString(
         fontRendererObj, TextFormatting.translate(cause),
-        2, height - 2 - fontRendererObj.FONT_HEIGHT, -1
+        3, height - 2 - fontRendererObj.FONT_HEIGHT, -1
       );
     }
   }
@@ -130,7 +137,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   @Override
   protected void actionPerformed(GuiButton button) {
     if (button != null && button.id == 0) {
-      mc.displayGuiScreen(new GuiAccountManager(previousScreen, false));
+      mc.displayGuiScreen(new GuiAccountManager(previousScreen));
     }
   }
 }

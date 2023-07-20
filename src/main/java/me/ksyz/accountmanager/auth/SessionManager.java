@@ -13,7 +13,7 @@ public class SessionManager {
   public static Field getSessionField() {
     if (sessionField == null) {
       try {
-        for (final Field f : Minecraft.class.getDeclaredFields()) {
+        for (Field f : Minecraft.class.getDeclaredFields()) {
           if (f.getType().isAssignableFrom(Session.class)) {
             sessionField = f;
             sessionField.setAccessible(true);
@@ -31,7 +31,7 @@ public class SessionManager {
     return mc.getSession();
   }
 
-  public static void setSession(final Session session) {
+  public static void setSession(Session session) {
     try {
       getSessionField().set(mc, session);
     } catch (IllegalAccessException e) {
