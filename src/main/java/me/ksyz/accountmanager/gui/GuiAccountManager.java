@@ -11,7 +11,6 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSlot;
-import net.minecraft.client.renderer.GlStateManager;
 import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
@@ -110,13 +109,10 @@ public class GuiAccountManager extends GuiScreen {
     String text = TextFormatting.translate(String.format(
       "&7Username: &3%s&r", SessionManager.getSession().getUsername()
     ));
-    GlStateManager.disableLighting();
     mc.currentScreen.drawString(mc.fontRendererObj, text, 3, 3, -1);
-    GlStateManager.enableLighting();
 
     if (notification != null && !notification.isExpired()) {
       String notificationText = notification.getMessage();
-      GlStateManager.disableLighting();
       Gui.drawRect(
         mc.currentScreen.width / 2 - mc.fontRendererObj.getStringWidth(notificationText) / 2 - 3, 4,
         mc.currentScreen.width / 2 + mc.fontRendererObj.getStringWidth(notificationText) / 2 + 3, 4 + 3 + mc.fontRendererObj.FONT_HEIGHT + 2,
@@ -126,7 +122,6 @@ public class GuiAccountManager extends GuiScreen {
         mc.fontRendererObj, notification.getMessage(),
         mc.currentScreen.width / 2, 4 + 3, -1
       );
-      GlStateManager.enableLighting();
     }
   }
 
