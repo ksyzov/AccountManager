@@ -127,7 +127,9 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   public void handleMouseInput() throws IOException {
-    guiAccountList.handleMouseInput();
+    if (guiAccountList != null) {
+      guiAccountList.handleMouseInput();
+    }
     super.handleMouseInput();
   }
 
