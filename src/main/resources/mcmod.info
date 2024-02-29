@@ -2,7 +2,7 @@
   {
     "modid": "accountmanager",
     "name": "Account Manager",
-    "description": "Allows you to sign in to Mojang or Microsoft accounts in-game.",
+    "description": "Allows you to sign in to Microsoft accounts in-game.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "https://github.com/ksyzov/AccountManager",
