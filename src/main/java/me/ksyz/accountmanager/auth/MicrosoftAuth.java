@@ -2,10 +2,8 @@ package me.ksyz.accountmanager.auth;
 
 import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
-import me.ksyz.accountmanager.utils.SystemUtils;
 import net.minecraft.util.Session;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -31,12 +29,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-/**
- * Utility methods for authenticating via Microsoft based on <a href="https://github.com/axieum/authme">Auth Me</a>.
- */
+// Based on Auth Me (https://github.com/axieum/authme)
 public final class MicrosoftAuth {
   // A reusable Apache HTTP request config
   public static final RequestConfig REQUEST_CONFIG = RequestConfig
@@ -50,29 +45,25 @@ public final class MicrosoftAuth {
   // 25565 + 10
   public static final int PORT = 25575;
 
-  /**
-   * Navigates to the Microsoft login and listens for a successful callback.
-   *
-   * @param executor executor to run the login task on
-   * @return completable future for the Microsoft auth token
-   */
-  public static CompletableFuture<String> acquireMSAuthCode(Executor executor) {
-    return acquireMSAuthCode(SystemUtils::openWebLink, executor);
+  public static URI getMSAuthLink(String state) {
+    try {
+      // Build a Microsoft login url
+      URIBuilder uriBuilder = new URIBuilder("https://login.live.com/oauth20_authorize.srf")
+        .addParameter("client_id", CLIENT_ID)
+        .addParameter("response_type", "code")
+        .addParameter("redirect_uri", String.format("http://localhost:%d/callback", PORT))
+        .addParameter("scope", "XboxLive.signin XboxLive.offline_access")
+        .addParameter("state", state)
+        .addParameter("prompt", "select_account");
+      return uriBuilder.build();
+    } catch (Exception e) {
+      return null;
+    }
   }
 
-  /**
-   * Generates a Microsoft login link and listens for a successful callback.
-   *
-   * @param browserAction consumer that opens the generated login url
-   * @param executor      executor to run the login task on
-   * @return completable future for the Microsoft auth token
-   */
-  public static CompletableFuture<String> acquireMSAuthCode(Consumer<URI> browserAction, Executor executor) {
+  public static CompletableFuture<String> acquireMSAuthCode(String state, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try {
-        // Generate a random "state" to be included in the request that will in turn be returned with the token
-        String state = RandomStringUtils.randomAlphanumeric(8);
-
         // Prepare a temporary HTTP server we can listen for the OAuth2 callback on
         HttpServer server = HttpServer.create(
           new InetSocketAddress(PORT), 0
@@ -119,19 +110,6 @@ public final class MicrosoftAuth {
           latch.countDown();
         });
 
-        // Build a Microsoft login url
-        URIBuilder uriBuilder = new URIBuilder("https://login.live.com/oauth20_authorize.srf")
-          .addParameter("client_id", CLIENT_ID)
-          .addParameter("response_type", "code")
-          .addParameter("redirect_uri", String.format("http://localhost:%d/callback", server.getAddress().getPort()))
-          .addParameter("scope", "XboxLive.signin XboxLive.offline_access")
-          .addParameter("state", state)
-          .addParameter("prompt", "select_account");
-        URI uri = uriBuilder.build();
-
-        // Navigate to the Microsoft login in browser
-        browserAction.accept(uri);
-
         try {
           // Start the HTTP server (http://localhost:25575/callback)
           server.start();
@@ -159,13 +137,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Exchanges a Microsoft auth code for Microsoft access tokens.
-   *
-   * @param authCode Microsoft auth code
-   * @param executor executor to run the login task on
-   * @return completable future for a mapping of Microsoft access token ("access_token") and refresh token ("refresh_token")
-   */
   public static CompletableFuture<Map<String, String>> acquireMSAccessTokens(String authCode, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
@@ -219,13 +190,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Refreshes Microsoft access tokens.
-   *
-   * @param msToken  Microsoft refresh token
-   * @param executor executor to run the login task on
-   * @return completable future for a mapping of Microsoft access token ("access_token") and refresh token ("refresh_token")
-   */
   public static CompletableFuture<Map<String, String>> refreshMSAccessTokens(String msToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
@@ -279,13 +243,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Exchanges a Microsoft access token for an Xbox Live access token.
-   *
-   * @param accessToken Microsoft access token
-   * @param executor    executor to run the login task on
-   * @return completable future for the Xbox Live access token
-   */
   public static CompletableFuture<String> acquireXboxAccessToken(String accessToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
@@ -327,13 +284,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Exchanges an Xbox Live access token for an Xbox Live XSTS token.
-   *
-   * @param accessToken Xbox Live access token
-   * @param executor    executor to run the login task on
-   * @return completable future for a mapping of Xbox Live XSTS token ("Token") and user hash ("uhs")
-   */
   public static CompletableFuture<Map<String, String>> acquireXboxXstsToken(String accessToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
@@ -389,14 +339,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Exchanges an Xbox Live XSTS token for a Minecraft access token.
-   *
-   * @param xstsToken Xbox Live XSTS token
-   * @param userHash  Xbox Live user hash
-   * @param executor  executor to run the login task on
-   * @return completable future for the Minecraft access token
-   */
   public static CompletableFuture<String> acquireMCAccessToken(String xstsToken, String userHash, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {
@@ -431,13 +373,6 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
-  /**
-   * Fetches the Minecraft profile for the given access token and returns a new Minecraft session.
-   *
-   * @param mcToken  Minecraft access token
-   * @param executor executor to run the login task on
-   * @return completable future for the new Minecraft session
-   */
   public static CompletableFuture<Session> login(String mcToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = HttpClients.createMinimal()) {

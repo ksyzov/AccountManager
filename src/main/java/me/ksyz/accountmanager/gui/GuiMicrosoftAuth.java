@@ -5,12 +5,15 @@ import me.ksyz.accountmanager.auth.Account;
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
+import me.ksyz.accountmanager.utils.SystemUtils;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.lwjgl.input.Keyboard;
 
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,7 +21,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class GuiMicrosoftAuth extends GuiScreen {
   private final GuiScreen previousScreen;
+  private final String state;
 
+  private GuiButton openButton = null;
   private GuiButton cancelButton = null;
   private String status = null;
   private String cause = null;
@@ -27,24 +32,42 @@ public class GuiMicrosoftAuth extends GuiScreen {
 
   public GuiMicrosoftAuth(GuiScreen previousScreen) {
     this.previousScreen = previousScreen;
+    this.state = RandomStringUtils.randomAlphanumeric(8);
   }
 
   @Override
   public void initGui() {
     buttonList.clear();
-
-    buttonList.add(cancelButton = new GuiButton(
-      0, width / 2 - 100, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, "Cancel"
+    buttonList.add(openButton = new GuiButton(
+      0,
+      width / 2 - 75 - 2,
+      height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT,
+      75,
+      20,
+      "Open"
     ));
+    buttonList.add(cancelButton = new GuiButton(
+      1,
+      width / 2 + 2,
+      height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT,
+      75,
+      20,
+      "Cancel"
+    ));
+
     if (task == null) {
+      URI url = MicrosoftAuth.getMSAuthLink(state);
+      SystemUtils.setClipboard(url != null ? url.toString() : "");
+      status = "&fLogin link has been copied to the clipboard!&r";
+
       if (executor == null) {
         executor = Executors.newSingleThreadExecutor();
       }
       AtomicReference<String> refreshToken = new AtomicReference<>("");
       AtomicReference<String> accessToken = new AtomicReference<>("");
-      status = "&fCheck your browser to continue...&r";
-      task = MicrosoftAuth.acquireMSAuthCode(executor)
+      task = MicrosoftAuth.acquireMSAuthCode(state, executor)
         .thenComposeAsync(msAuthCode -> {
+          openButton.enabled = false;
           status = "&fAcquiring Microsoft access tokens&r";
           return MicrosoftAuth.acquireMSAccessTokens(msAuthCode, executor);
         })
@@ -81,6 +104,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
             )), 5000L)));
         })
         .exceptionally(error -> {
+          openButton.enabled = false;
           status = String.format("&c%s&r", error.getMessage());
           cause = String.format("&c%s&r", error.getCause().getMessage());
           return null;
@@ -136,8 +160,21 @@ public class GuiMicrosoftAuth extends GuiScreen {
 
   @Override
   protected void actionPerformed(GuiButton button) {
-    if (button != null && button.id == 0) {
-      mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+    if (button == null) {
+      return;
+    }
+
+    if (button.enabled) {
+      switch (button.id) {
+        case 0: { // Open
+          SystemUtils.openWebLink(MicrosoftAuth.getMSAuthLink(state));
+        }
+        break;
+        case 1: { // Cancel
+          mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+        }
+        break;
+      }
     }
   }
 }
