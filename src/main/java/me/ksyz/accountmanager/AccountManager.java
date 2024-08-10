@@ -11,15 +11,15 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Optional;
 
 @Mod(modid = "accountmanager", version = "@VERSION@", clientSideOnly = true, acceptedMinecraftVersions = "1.8.9")
 public class AccountManager {
   private static final Minecraft mc = Minecraft.getMinecraft();
-  private static final ArrayList<Account> accounts = new ArrayList<>();
   private static final File file = new File(mc.mcDataDir, "accounts.json");
   private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+  public static final ArrayList<Account> accounts = new ArrayList<>();
 
   @EventHandler
   public static void init(FMLInitializationEvent event) {
@@ -52,7 +52,7 @@ public class AccountManager {
             Optional.ofNullable(jsonObject.get("refreshToken")).map(JsonElement::getAsString).orElse(""),
             Optional.ofNullable(jsonObject.get("accessToken")).map(JsonElement::getAsString).orElse(""),
             Optional.ofNullable(jsonObject.get("username")).map(JsonElement::getAsString).orElse(""),
-            Optional.ofNullable(jsonObject.get("timestamp")).map(JsonElement::getAsLong).orElse(System.currentTimeMillis())
+            Optional.ofNullable(jsonObject.get("unban")).map(JsonElement::getAsLong).orElse(0L)
           ));
         }
       }
@@ -69,7 +69,7 @@ public class AccountManager {
         jsonObject.addProperty("refreshToken", account.getRefreshToken());
         jsonObject.addProperty("accessToken", account.getAccessToken());
         jsonObject.addProperty("username", account.getUsername());
-        jsonObject.addProperty("timestamp", account.getTimestamp());
+        jsonObject.addProperty("unban", account.getUnban());
         jsonArray.add(jsonObject);
       }
       PrintWriter printWriter = new PrintWriter(new FileWriter(file));
@@ -78,25 +78,5 @@ public class AccountManager {
     } catch (IOException e) {
       System.err.print("Couldn't save accounts.json!");
     }
-  }
-
-  public static Account get(int index) {
-    return accounts.get(index);
-  }
-
-  public static void add(Account account) {
-    accounts.add(account);
-  }
-
-  public static void remove(int index) {
-    accounts.remove(index);
-  }
-
-  public static int size() {
-    return accounts.size();
-  }
-
-  public static void swap(int i, int j) {
-    Collections.swap(accounts, i, j);
   }
 }

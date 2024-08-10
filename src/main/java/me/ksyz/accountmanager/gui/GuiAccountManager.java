@@ -7,16 +7,12 @@ import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiSlot;
+import net.minecraft.client.gui.*;
 import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -24,8 +20,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GuiAccountManager extends GuiScreen {
-  private static final SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-
   private final GuiScreen previousScreen;
 
   private GuiButton loginButton = null;
@@ -101,13 +95,13 @@ public class GuiAccountManager extends GuiScreen {
     drawCenteredString(
       fontRendererObj,
       TextFormatting.translate(String.format(
-        "&rAccount Manager &8(&7%s&8)&r", AccountManager.size()
+        "&rAccount Manager &8(&7%s&8)&r", AccountManager.accounts.size()
       )),
       width / 2, 20, -1
     );
 
     String text = TextFormatting.translate(String.format(
-      "&7Username: &3%s&r", SessionManager.getSession().getUsername()
+      "&7Username: &3%s&r", SessionManager.get().getUsername()
     ));
     mc.currentScreen.drawString(mc.fontRendererObj, text, 3, 3, -1);
 
@@ -140,17 +134,17 @@ public class GuiAccountManager extends GuiScreen {
         if (selectedAccount > 0) {
           --selectedAccount;
           if (isCtrlKeyDown()) {
-            AccountManager.swap(selectedAccount, selectedAccount + 1);
+            Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount + 1);
             AccountManager.save();
           }
         }
       }
       break;
       case Keyboard.KEY_DOWN: {
-        if (selectedAccount < AccountManager.size() - 1) {
+        if (selectedAccount < AccountManager.accounts.size() - 1) {
           ++selectedAccount;
           if (isCtrlKeyDown()) {
-            AccountManager.swap(selectedAccount, selectedAccount - 1);
+            Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount - 1);
             AccountManager.save();
           }
         }
@@ -171,7 +165,7 @@ public class GuiAccountManager extends GuiScreen {
     }
 
     if (isKeyComboCtrlC(keyCode) && selectedAccount >= 0) {
-      setClipboardString(AccountManager.get(selectedAccount).getUsername());
+      setClipboardString(AccountManager.accounts.get(selectedAccount).getUsername());
     }
   }
 
@@ -188,7 +182,7 @@ public class GuiAccountManager extends GuiScreen {
             if (executor == null) {
               executor = Executors.newSingleThreadExecutor();
             }
-            Account account = AccountManager.get(selectedAccount);
+            Account account = AccountManager.accounts.get(selectedAccount);
             String username = StringUtils.isBlank(account.getUsername()) ? "???" : account.getUsername();
             AtomicReference<String> refreshToken = new AtomicReference<>("");
             AtomicReference<String> accessToken = new AtomicReference<>("");
@@ -200,7 +194,7 @@ public class GuiAccountManager extends GuiScreen {
                 if (session != null) {
                   account.setUsername(session.getUsername());
                   AccountManager.save();
-                  SessionManager.setSession(session);
+                  SessionManager.set(session);
                   notification = new Notification(TextFormatting.translate(String.format(
                     "&aSuccessful login! (%s)&r", account.getUsername()
                   )), 5000L);
@@ -249,9 +243,8 @@ public class GuiAccountManager extends GuiScreen {
                 account.setRefreshToken(refreshToken.get());
                 account.setAccessToken(accessToken.get());
                 account.setUsername(session.getUsername());
-                account.setTimestamp(System.currentTimeMillis());
                 AccountManager.save();
-                SessionManager.setSession(session);
+                SessionManager.set(session);
                 notification = new Notification(TextFormatting.translate(String.format(
                   "&aSuccessful login! (%s)&r", account.getUsername()
                 )), 5000L);
@@ -272,7 +265,7 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
         case 2: { // Delete
-          AccountManager.remove(selectedAccount--);
+          AccountManager.accounts.remove(selectedAccount--);
           AccountManager.save();
           updateScreen();
         }
@@ -292,13 +285,33 @@ public class GuiAccountManager extends GuiScreen {
     public GuiAccountList(Minecraft mc) {
       super(
         mc, GuiAccountManager.this.width, GuiAccountManager.this.height,
-        32, GuiAccountManager.this.height - 64, 27
+        32, GuiAccountManager.this.height - 64, 16
       );
     }
 
     @Override
     protected int getSize() {
-      return AccountManager.size();
+      return AccountManager.accounts.size();
+    }
+
+    @Override
+    protected boolean isSelected(int slotIndex) {
+      return slotIndex == GuiAccountManager.this.selectedAccount;
+    }
+
+    @Override
+    protected int getScrollBarX() {
+      return (this.width + getListWidth()) / 2 + 2;
+    }
+
+    @Override
+    public int getListWidth() {
+      return (150 + 4) * 2;
+    }
+
+    @Override
+    protected int getContentHeight() {
+      return AccountManager.accounts.size() * 16;
     }
 
     @Override
@@ -311,41 +324,56 @@ public class GuiAccountManager extends GuiScreen {
     }
 
     @Override
-    protected boolean isSelected(int slotIndex) {
-      return slotIndex == GuiAccountManager.this.selectedAccount;
-    }
-
-    @Override
-    protected int getContentHeight() {
-      return AccountManager.size() * 27;
-    }
-
-    @Override
     protected void drawBackground() {
       GuiAccountManager.this.drawDefaultBackground();
     }
 
     @Override
     protected void drawSlot(int entryID, int x, int y, int k, int mouseXIn, int mouseYIn) {
-      Account account = AccountManager.get(entryID);
+      FontRenderer fr = GuiAccountManager.this.fontRendererObj;
+      Account account = AccountManager.accounts.get(entryID);
 
-      String username = StringUtils.isBlank(account.getUsername()) ? "???" : account.getUsername();
-      String text = TextFormatting.translate(String.format(
-        "%s%s&r",
-        SessionManager.getSession().getUsername().equals(username) ? "&a&l" : "&f",
-        username
-      ));
+      String username = account.getUsername();
+      if (StringUtils.isBlank(username)) {
+        username = "&7&l?";
+      } else if (username.equals(SessionManager.get().getUsername())) {
+        username = String.format("&a&l%s", username);
+      }
+      username = TextFormatting.translate(
+        String.format("&r%s&r", username)
+      );
       GuiAccountManager.this.drawString(
-        GuiAccountManager.this.fontRendererObj, text,
-        x + 2, y + 2, -1
+        fr, username, x + 2, y + 2, -1
       );
 
-      String time = TextFormatting.translate(String.format(
-        "&8&o%s&r", sdf.format(new Date(account.getTimestamp()))
-      ));
+      long currentTime = System.currentTimeMillis();
+      long unbanTime = account.getUnban();
+      String unban;
+      if (unbanTime < 0L) {
+        unban = "&4&l⚠";
+      } else if (unbanTime <= currentTime) {
+        unban = "&2&l✔";
+      } else {
+        long diff = unbanTime - currentTime;
+        long s = (diff / 1000L) % 60L;
+        long m = (diff / 60000L) % 60L;
+        long h = (diff / 3600000L) % 24L;
+        long d = (diff / 86400000L);
+        unban = String.format(
+          "%s%s%s%s",
+          d > 0L ? String.format("%dd", d) : "",
+          h > 0L ? String.format(" %dh", h) : "",
+          m > 0L ? String.format(" %dm", m) : "",
+          s > 0L ? String.format(" %ds", s) : ""
+        );
+        unban = unban.trim();
+        unban = String.format("%s &c&l⚠", unban);
+      }
+      unban = TextFormatting.translate(
+        String.format("&r%s&r", unban)
+      );
       GuiAccountManager.this.drawString(
-        GuiAccountManager.this.fontRendererObj, time,
-        x + 2, y + 13, -1
+        fr, unban, x + getListWidth() - 5 - fr.getStringWidth(unban), y + 2, -1
       );
     }
   }

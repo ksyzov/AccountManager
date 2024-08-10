@@ -8,34 +8,35 @@ import java.lang.reflect.Field;
 public class SessionManager {
   private static final Minecraft mc = Minecraft.getMinecraft();
 
-  private static Field sessionField = null;
+  private static Field field = null;
 
-  public static Field getSessionField() {
-    if (sessionField == null) {
+  private static Field getField() {
+    if (field == null) {
       try {
         for (Field f : Minecraft.class.getDeclaredFields()) {
           if (f.getType().isAssignableFrom(Session.class)) {
-            sessionField = f;
-            sessionField.setAccessible(true);
+            field = f;
+            field.setAccessible(true);
             break;
           }
         }
       } catch (Exception e) {
-        sessionField = null;
+        field = null;
       }
     }
-    return sessionField;
+
+    return field;
   }
 
-  public static Session getSession() {
+  public static Session get() {
     return mc.getSession();
   }
 
-  public static void setSession(Session session) {
+  public static void set(Session session) {
     try {
-      getSessionField().set(mc, session);
-    } catch (IllegalAccessException e) {
-      System.err.println(e.getMessage());
+      getField().set(mc, session);
+    } catch (Exception e) {
+      //
     }
   }
 }

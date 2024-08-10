@@ -24,6 +24,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   private final String state;
 
   private GuiButton openButton = null;
+  private boolean openButtonEnabled = true;
   private GuiButton cancelButton = null;
   private String status = null;
   private String cause = null;
@@ -67,7 +68,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
       AtomicReference<String> accessToken = new AtomicReference<>("");
       task = MicrosoftAuth.acquireMSAuthCode(state, executor)
         .thenComposeAsync(msAuthCode -> {
-          openButton.enabled = false;
+          openButtonEnabled = false;
           status = "&fAcquiring Microsoft access tokens&r";
           return MicrosoftAuth.acquireMSAccessTokens(msAuthCode, executor);
         })
@@ -93,18 +94,25 @@ public class GuiMicrosoftAuth extends GuiScreen {
         })
         .thenAccept(session -> {
           status = null;
-          AccountManager.add(new Account(
-            refreshToken.get(), accessToken.get(), session.getUsername(), System.currentTimeMillis()
-          ));
+          Account acc = new Account(
+            refreshToken.get(), accessToken.get(), session.getUsername()
+          );
+          for (Account account : AccountManager.accounts) {
+            if (acc.getUsername().equals(account.getUsername())) {
+              acc.setUnban(account.getUnban());
+              break;
+            }
+          }
+          AccountManager.accounts.add(acc);
           AccountManager.save();
-          SessionManager.setSession(session);
+          SessionManager.set(session);
           mc.displayGuiScreen(new GuiAccountManager(previousScreen,
             new Notification(TextFormatting.translate(String.format(
               "&aSuccessful login! (%s)&r", session.getUsername()
             )), 5000L)));
         })
         .exceptionally(error -> {
-          openButton.enabled = false;
+          openButtonEnabled = false;
           status = String.format("&c%s&r", error.getMessage());
           cause = String.format("&c%s&r", error.getCause().getMessage());
           return null;
@@ -122,6 +130,9 @@ public class GuiMicrosoftAuth extends GuiScreen {
 
   @Override
   public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    if (openButton != null) {
+      openButton.enabled = openButtonEnabled;
+    }
     drawDefaultBackground();
     super.drawScreen(mouseX, mouseY, partialTicks);
 

@@ -4,13 +4,20 @@ public class Account {
   private String refreshToken;
   private String accessToken;
   private String username;
-  private long timestamp;
+  private long unban;
 
-  public Account(String refreshToken, String accessToken, String username, long timestamp) {
+  public Account(String refreshToken, String accessToken, String username) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.username = username;
-    this.timestamp = timestamp;
+    this.unban = 0L;
+  }
+
+  public Account(String refreshToken, String accessToken, String username, long unban) {
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+    this.username = username;
+    this.unban = unban;
   }
 
   public String getRefreshToken() {
@@ -25,8 +32,8 @@ public class Account {
     return username;
   }
 
-  public long getTimestamp() {
-    return timestamp;
+  public long getUnban() {
+    return unban;
   }
 
   public void setRefreshToken(String refreshToken) {
@@ -41,7 +48,7 @@ public class Account {
     this.username = username;
   }
 
-  public void setTimestamp(long timestamp) {
-    this.timestamp = timestamp;
+  public void setUnban(long unban) {
+    this.unban = unban;
   }
 }
