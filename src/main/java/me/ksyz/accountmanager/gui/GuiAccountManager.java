@@ -265,9 +265,12 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
         case 2: { // Delete
-          AccountManager.accounts.remove(selectedAccount--);
-          AccountManager.save();
-          updateScreen();
+          if (selectedAccount > -1 && selectedAccount < AccountManager.accounts.size()) {
+            AccountManager.accounts.remove(selectedAccount);
+            AccountManager.save();
+            selectedAccount = -1;
+            updateScreen();
+          }
         }
         break;
         case 3: { // Cancel
