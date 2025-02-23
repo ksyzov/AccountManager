@@ -59,7 +59,6 @@ public class CookieAuth {
                 String cookieString = buildCookieString(cookieMap);
                 gui.status = "&fAuthenticating with Microsoft...&r";
 
-                // Chain the future from authenticateWithCookies to this future
                 authenticateWithCookies(cookieString, gui, null).whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.complete(false);
