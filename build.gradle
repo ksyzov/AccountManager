@@ -58,3 +58,7 @@ sourceSets {
         output.resourcesDir = java.outputDir
     }
 }
+
+configurations {
+    runtimeOnly { canBeResolved = true }
+}

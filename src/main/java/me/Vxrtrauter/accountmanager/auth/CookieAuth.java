@@ -17,7 +17,6 @@ import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public class CookieAuth {
@@ -33,9 +32,12 @@ public class CookieAuth {
         String id;
     }
 
-    public static void addAccountFromCookieFile(File cookieFile, GuiCookieAuth gui) {
+    public static CompletableFuture<Boolean> addAccountFromCookieFile(File cookieFile, GuiCookieAuth gui) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
         executor.execute(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(cookieFile), StandardCharsets.UTF_8))) {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(cookieFile), StandardCharsets.UTF_8))) {
                 gui.status = "&fReading cookie file...&r";
                 Map<String, String> cookieMap = new HashMap<>();
                 String line;
@@ -50,18 +52,31 @@ public class CookieAuth {
                 }
                 if (cookieMap.isEmpty()) {
                     gui.status = "&cNo valid login.live.com cookies found&r";
+                    future.complete(false);
                     return;
                 }
                 gui.status = "&fBuilding cookie string...&r";
                 String cookieString = buildCookieString(cookieMap);
                 gui.status = "&fAuthenticating with Microsoft...&r";
-                authenticateWithCookies(cookieString, gui);
+
+                // Chain the future from authenticateWithCookies to this future
+                authenticateWithCookies(cookieString, gui, null).whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        future.complete(false);
+                    } else {
+                        future.complete(result);
+                    }
+                });
             } catch (Exception e) {
                 gui.status = "&cError processing cookie file&r";
                 e.printStackTrace();
+                future.complete(false);
             }
         });
+
+        return future;
     }
+
 
 
     public static String buildCookieString(Map<String, String> cookies) {
@@ -132,8 +147,8 @@ public class CookieAuth {
         return location3;
     }
 
-    private static void authenticateWithCookies(String cookieString, GuiCookieAuth gui) {
-        CompletableFuture.runAsync(() -> {
+    private static CompletableFuture<Boolean> authenticateWithCookies(String cookieString, GuiCookieAuth gui, String cookie) {
+        return CompletableFuture.supplyAsync(() -> {
             try {
                 gui.status = "&fStarting authentication process...&r";
                 String finalLocation = followRedirectChain(cookieString);
@@ -162,7 +177,7 @@ public class CookieAuth {
                 if (mcRes == null || mcRes.access_token == null) {
                     System.err.println("[AuthFlow] Failed to get Minecraft access token");
                     gui.status = "&cFailed to get Minecraft access token&r";
-                    return;
+                    return false;
                 }
 
                 gui.status = "&fRetrieving Minecraft profile...&r";
@@ -170,7 +185,7 @@ public class CookieAuth {
                 if (profileRes == null || profileRes.name == null) {
                     System.err.println("[AuthFlow] Failed to get Minecraft profile");
                     gui.status = "&cFailed to get Minecraft profile&r";
-                    return;
+                    return false;
                 }
 
                 gui.status = "&aCreating Minecraft session...&r";
@@ -192,22 +207,17 @@ public class CookieAuth {
                 AccountManager.save();
                 SessionManager.set(session);
                 System.out.println("[AuthFlow] Successfully logged in as " + session.getUsername());
-                boolean success = true;
+
                 gui.status = "&aSuccessfully logged in as " + session.getUsername() + "&r";
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        Thread.sleep(750);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }, executor);
+                return true;
             } catch (Exception e) {
                 System.err.println("[AuthFlow] Authentication failed: " + e.getMessage());
-                boolean success = false;
                 gui.status = "&cInvalid Cookie File&r";
+                return false;
             }
-        }, executor);
+        });
     }
+
 
     public static McResponse postMinecraftLogin(String xblToken) throws Exception {
         GuiAccountManager.notification = new Notification(TextFormatting.translate("&7Logging into Minecraft services..."), 5000L);

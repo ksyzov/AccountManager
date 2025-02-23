@@ -129,33 +129,36 @@ public class GuiCookieAuth extends GuiScreen {
                         e.printStackTrace();
                     }
 
-                        SwingUtilities.invokeLater(() -> {
-                            FileDialog fileDialog = new FileDialog((Frame) null, "Select Cookie File", FileDialog.LOAD);
-                            fileDialog.setDirectory(System.getProperty("user.home") + File.separator + "Downloads");
-                            status = "&aFile Picker has been opened in the Background!&r";
-                            fileDialog.setFile("*.txt");
-                            fileDialog.setModal(true);
-                            fileDialog.setVisible(true);
-                            String selectedFileName = fileDialog.getFile();
-                            if (selectedFileName != null) {
-                                File selectedFile = new File(fileDialog.getDirectory(), selectedFileName);
-                                if (selectedFile.exists()) {
-                                    openButtonEnabled = false;
-                                    status = "&fReading cookie file...&r";
-                                    CookieAuth.addAccountFromCookieFile(selectedFile, this);
-                                } else {
-                                    status = "&cSelected file does not exist!&r";
-                                }
+                    SwingUtilities.invokeLater(() -> {
+                        FileDialog fileDialog = new FileDialog((Frame) null, "Select Cookie File", FileDialog.LOAD);
+                        fileDialog.setDirectory(System.getProperty("user.home") + File.separator + "Downloads");
+                        status = "&aFile Picker has been opened in the Background!&r";
+                        fileDialog.setFile("*.txt");
+                        fileDialog.setModal(true);
+                        fileDialog.setVisible(true);
+                        String selectedFileName = fileDialog.getFile();
+                        if (selectedFileName != null) {
+                            File selectedFile = new File(fileDialog.getDirectory(), selectedFileName);
+                            if (selectedFile.exists()) {
+                                openButtonEnabled = false;
+                                status = "&fReading cookie file...&r";
+                                CompletableFuture<Boolean> authTask = CookieAuth.addAccountFromCookieFile(selectedFile, this);
+                                authTask.thenAccept(success -> {
+                                    if (success) {
+                                        mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+                                    }
+                                });
                             } else {
-                                status = "&eFile selection canceled.&r";
+                                status = "&cSelected file does not exist!&r";
                             }
-                        });
-
-
+                        } else {
+                            status = "&eFile selection canceled.&r";
+                        }
+                    });
                     break;
                 }
                 case 1: { // Cancel button
-                    mc.displayGuiScreen((previousScreen));
+                    mc.displayGuiScreen(previousScreen);
                     break;
                 }
                 default: {
