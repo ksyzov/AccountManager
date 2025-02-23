@@ -33,6 +33,14 @@ minecraft {
     replace("@VERSION@": modVersion)
 }
 
+repositories {
+    mavenCentral() // Add this to ensure Gson can be downloaded
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.9' // Add Gson dependency here
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version

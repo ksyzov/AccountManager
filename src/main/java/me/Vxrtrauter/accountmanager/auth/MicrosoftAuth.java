@@ -1,4 +1,4 @@
-package me.ksyz.accountmanager.auth;
+package me.Vxrtrauter.accountmanager.auth;
 
 import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
@@ -35,11 +35,11 @@ import java.util.stream.Collectors;
 public final class MicrosoftAuth {
   // A reusable Apache HTTP request config
   public static final RequestConfig REQUEST_CONFIG = RequestConfig
-    .custom()
-    .setConnectionRequestTimeout(30_000)
-    .setConnectTimeout(30_000)
-    .setSocketTimeout(30_000)
-    .build();
+          .custom()
+          .setConnectionRequestTimeout(30_000)
+          .setConnectTimeout(30_000)
+          .setSocketTimeout(30_000)
+          .build();
   // Account Manager
   public static final String CLIENT_ID = "42a60a84-599d-44b2-a7c6-b00cdef1d6a2";
   // 25565 + 10
@@ -49,12 +49,12 @@ public final class MicrosoftAuth {
     try {
       // Build a Microsoft login url
       URIBuilder uriBuilder = new URIBuilder("https://login.live.com/oauth20_authorize.srf")
-        .addParameter("client_id", CLIENT_ID)
-        .addParameter("response_type", "code")
-        .addParameter("redirect_uri", String.format("http://localhost:%d/callback", PORT))
-        .addParameter("scope", "XboxLive.signin XboxLive.offline_access")
-        .addParameter("state", state)
-        .addParameter("prompt", "select_account");
+              .addParameter("client_id", CLIENT_ID)
+              .addParameter("response_type", "code")
+              .addParameter("redirect_uri", String.format("http://localhost:%d/callback", PORT))
+              .addParameter("scope", "XboxLive.signin XboxLive.offline_access")
+              .addParameter("state", state)
+              .addParameter("prompt", "select_account");
       return uriBuilder.build();
     } catch (Exception e) {
       return null;
@@ -66,29 +66,29 @@ public final class MicrosoftAuth {
       try {
         // Prepare a temporary HTTP server we can listen for the OAuth2 callback on
         HttpServer server = HttpServer.create(
-          new InetSocketAddress(PORT), 0
+                new InetSocketAddress(PORT), 0
         );
 
         // Track when a request has been handled
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<String> authCode = new AtomicReference<>(null),
-          errorMsg = new AtomicReference<>(null);
+                errorMsg = new AtomicReference<>(null);
 
         server.createContext("/callback", exchange -> {
           // Parse the query parameters
           Map<String, String> query = URLEncodedUtils
-            .parse(
-              exchange.getRequestURI().toString().replaceAll("/callback\\?", ""),
-              StandardCharsets.UTF_8
-            )
-            .stream()
-            .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+                  .parse(
+                          exchange.getRequestURI().toString().replaceAll("/callback\\?", ""),
+                          StandardCharsets.UTF_8
+                  )
+                  .stream()
+                  .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
 
           // Check the returned parameter values
           if (!state.equals(query.get("state"))) {
             // The "state" does not match what we sent
             errorMsg.set(
-              String.format("State mismatch! Expected '%s' but got '%s'.", state, query.get("state"))
+                    String.format("State mismatch! Expected '%s' but got '%s'.", state, query.get("state"))
             );
           } else if (query.containsKey("code")) {
             // Successfully matched the auth code
@@ -119,12 +119,12 @@ public final class MicrosoftAuth {
 
           // If present, return
           return Optional.ofNullable(authCode.get())
-            .filter(code -> !StringUtils.isBlank(code))
-            // Otherwise, throw an exception with the error description (if present)
-            .orElseThrow(() -> new Exception(
-              Optional.ofNullable(errorMsg.get())
-                .orElse("There was no auth code or error description present.")
-            ));
+                  .filter(code -> !StringUtils.isBlank(code))
+                  // Otherwise, throw an exception with the error description (if present)
+                  .orElseThrow(() -> new Exception(
+                          Optional.ofNullable(errorMsg.get())
+                                  .orElse("There was no auth code or error description present.")
+                  ));
         } finally {
           // Always release the server
           server.stop(2);
@@ -145,16 +145,16 @@ public final class MicrosoftAuth {
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/x-www-form-urlencoded");
         request.setEntity(new UrlEncodedFormEntity(
-          Arrays.asList(
-            new BasicNameValuePair("client_id", CLIENT_ID),
-            new BasicNameValuePair("grant_type", "authorization_code"),
-            new BasicNameValuePair("code", authCode),
-            // We must provide the exact redirect URI that was used to obtain the auth code
-            new BasicNameValuePair(
-              "redirect_uri", String.format("http://localhost:%d/callback", PORT)
-            )
-          ),
-          "UTF-8"
+                Arrays.asList(
+                        new BasicNameValuePair("client_id", CLIENT_ID),
+                        new BasicNameValuePair("grant_type", "authorization_code"),
+                        new BasicNameValuePair("code", authCode),
+                        // We must provide the exact redirect URI that was used to obtain the auth code
+                        new BasicNameValuePair(
+                                "redirect_uri", String.format("http://localhost:%d/callback", PORT)
+                        )
+                ),
+                "UTF-8"
         ));
 
         // Send the request on the HTTP client
@@ -163,19 +163,19 @@ public final class MicrosoftAuth {
         // Attempt to parse the response body as JSON and extract the access and refresh tokens
         JsonObject json = new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject();
         String accessToken = Optional.ofNullable(json.get("access_token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
-            "There was no Microsoft access token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
+                        "There was no Microsoft access token or error description present."
+                ));
         String refreshToken = Optional.ofNullable(json.get("refresh_token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
-            "There was no Microsoft refresh token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
+                        "There was no Microsoft refresh token or error description present."
+                ));
 
         // Return an immutable mapping of the access and refresh tokens
         Map<String, String> result = new HashMap<>();
@@ -198,16 +198,16 @@ public final class MicrosoftAuth {
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/x-www-form-urlencoded");
         request.setEntity(new UrlEncodedFormEntity(
-          Arrays.asList(
-            new BasicNameValuePair("client_id", CLIENT_ID),
-            new BasicNameValuePair("grant_type", "refresh_token"),
-            new BasicNameValuePair("refresh_token", msToken),
-            // We must provide the exact redirect URI that was used to obtain the auth code
-            new BasicNameValuePair(
-              "redirect_uri", String.format("http://localhost:%d/callback", PORT)
-            )
-          ),
-          "UTF-8"
+                Arrays.asList(
+                        new BasicNameValuePair("client_id", CLIENT_ID),
+                        new BasicNameValuePair("grant_type", "refresh_token"),
+                        new BasicNameValuePair("refresh_token", msToken),
+                        // We must provide the exact redirect URI that was used to obtain the auth code
+                        new BasicNameValuePair(
+                                "redirect_uri", String.format("http://localhost:%d/callback", PORT)
+                        )
+                ),
+                "UTF-8"
         ));
 
         // Send the request on the HTTP client
@@ -216,19 +216,19 @@ public final class MicrosoftAuth {
         // Attempt to parse the response body as JSON and extract the access and refresh tokens
         JsonObject json = new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject();
         String accessToken = Optional.ofNullable(json.get("access_token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
-            "There was no Microsoft access token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
+                        "There was no Microsoft access token or error description present."
+                ));
         String refreshToken = Optional.ofNullable(json.get("refresh_token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
-            "There was no Microsoft refresh token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("error_description").getAsString()) :
+                        "There was no Microsoft refresh token or error description present."
+                ));
 
         // Return an immutable mapping of the access and refresh tokens
         Map<String, String> result = new HashMap<>();
@@ -265,17 +265,17 @@ public final class MicrosoftAuth {
 
         // Attempt to parse the response body as JSON and extract the access token
         JsonObject json = res.getStatusLine().getStatusCode() == 200
-          ? new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject()
-          : new JsonObject();
+                ? new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject()
+                : new JsonObject();
         // If present, return
         return Optional.ofNullable(json.get("Token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          // Otherwise, throw an exception with the error description (if present)
-          .orElseThrow(() -> new Exception(json.has("XErr") ?
-            String.format("%s: %s", json.get("XErr").getAsString(), json.get("Message").getAsString()) :
-            "There was no access token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                // Otherwise, throw an exception with the error description (if present)
+                .orElseThrow(() -> new Exception(json.has("XErr") ?
+                        String.format("%s: %s", json.get("XErr").getAsString(), json.get("Message").getAsString()) :
+                        "There was no access token or error description present."
+                ));
       } catch (InterruptedException e) {
         throw new CancellationException("Xbox Live access token acquisition was cancelled!");
       } catch (Exception e) {
@@ -307,30 +307,30 @@ public final class MicrosoftAuth {
 
         // Attempt to parse the response body as JSON and extract the access token and user hash
         JsonObject json = res.getStatusLine().getStatusCode() == 200
-          ? new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject()
-          : new JsonObject();
+                ? new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject()
+                : new JsonObject();
         return Optional.ofNullable(json.get("Token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          // If present, extract the user hash and return
-          .map(token -> {
-            // Extract the user hash
-            String uhs = json.get("DisplayClaims").getAsJsonObject()
-              .get("xui").getAsJsonArray()
-              .get(0).getAsJsonObject()
-              .get("uhs").getAsString();
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                // If present, extract the user hash and return
+                .map(token -> {
+                  // Extract the user hash
+                  String uhs = json.get("DisplayClaims").getAsJsonObject()
+                          .get("xui").getAsJsonArray()
+                          .get(0).getAsJsonObject()
+                          .get("uhs").getAsString();
 
-            // Return an immutable mapping of the token and user hash
-            Map<String, String> result = new HashMap<>();
-            result.put("Token", token);
-            result.put("uhs", uhs);
-            return result;
-          })
-          // Otherwise, throw an exception with the error description (if present)
-          .orElseThrow(() -> new Exception(json.has("XErr") ?
-            String.format("%s: %s", json.get("XErr").getAsString(), json.get("Message").getAsString()) :
-            "There was no access token or error description present."
-          ));
+                  // Return an immutable mapping of the token and user hash
+                  Map<String, String> result = new HashMap<>();
+                  result.put("Token", token);
+                  result.put("uhs", uhs);
+                  return result;
+                })
+                // Otherwise, throw an exception with the error description (if present)
+                .orElseThrow(() -> new Exception(json.has("XErr") ?
+                        String.format("%s: %s", json.get("XErr").getAsString(), json.get("Message").getAsString()) :
+                        "There was no access token or error description present."
+                ));
       } catch (InterruptedException e) {
         throw new CancellationException("Xbox Live XSTS token acquisition was cancelled!");
       } catch (Exception e) {
@@ -347,7 +347,7 @@ public final class MicrosoftAuth {
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/json");
         request.setEntity(new StringEntity(
-          String.format("{\"identityToken\": \"XBL3.0 x=%s;%s\"}", userHash, xstsToken)
+                String.format("{\"identityToken\": \"XBL3.0 x=%s;%s\"}", userHash, xstsToken)
         ));
 
         // Send the request on the HTTP client
@@ -358,13 +358,13 @@ public final class MicrosoftAuth {
 
         // If present, return
         return Optional.ofNullable(json.get("access_token"))
-          .map(JsonElement::getAsString)
-          .filter(token -> !StringUtils.isBlank(token))
-          // Otherwise, throw an exception with the error description (if present)
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("errorMessage").getAsString()) :
-            "There was no access token or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(token -> !StringUtils.isBlank(token))
+                // Otherwise, throw an exception with the error description (if present)
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("errorMessage").getAsString()) :
+                        "There was no access token or error description present."
+                ));
       } catch (InterruptedException e) {
         throw new CancellationException("Minecraft access token acquisition was cancelled!");
       } catch (Exception e) {
@@ -387,20 +387,20 @@ public final class MicrosoftAuth {
         // Attempt to parse the response body as JSON and extract the profile
         JsonObject json = new JsonParser().parse(EntityUtils.toString(res.getEntity())).getAsJsonObject();
         return Optional.ofNullable(json.get("id"))
-          .map(JsonElement::getAsString)
-          .filter(uuid -> !StringUtils.isBlank(uuid))
-          // If present, build a new session and return
-          .map(uuid -> new Session(
-            json.get("name").getAsString(),
-            uuid,
-            mcToken,
-            Session.Type.MOJANG.toString()
-          ))
-          // Otherwise, throw an exception with the error description (if present)
-          .orElseThrow(() -> new Exception(json.has("error") ?
-            String.format("%s: %s", json.get("error").getAsString(), json.get("errorMessage").getAsString()) :
-            "There was no profile or error description present."
-          ));
+                .map(JsonElement::getAsString)
+                .filter(uuid -> !StringUtils.isBlank(uuid))
+                // If present, build a new session and return
+                .map(uuid -> new Session(
+                        json.get("name").getAsString(),
+                        uuid,
+                        mcToken,
+                        Session.Type.MOJANG.toString()
+                ))
+                // Otherwise, throw an exception with the error description (if present)
+                .orElseThrow(() -> new Exception(json.has("error") ?
+                        String.format("%s: %s", json.get("error").getAsString(), json.get("errorMessage").getAsString()) :
+                        "There was no profile or error description present."
+                ));
       } catch (InterruptedException e) {
         throw new CancellationException("Minecraft profile fetching was cancelled!");
       } catch (Exception e) {

@@ -1,9 +1,9 @@
-package me.ksyz.accountmanager;
+package me.Vxrtrauter.accountmanager;
 
-import me.ksyz.accountmanager.auth.Account;
-import me.ksyz.accountmanager.auth.SessionManager;
-import me.ksyz.accountmanager.gui.GuiAccountManager;
-import me.ksyz.accountmanager.utils.TextFormatting;
+import me.Vxrtrauter.accountmanager.auth.Account;
+import me.Vxrtrauter.accountmanager.auth.SessionManager;
+import me.Vxrtrauter.accountmanager.gui.GuiAccountManager;
+import me.Vxrtrauter.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiDisconnected;

@@ -1,12 +1,12 @@
-package me.ksyz.accountmanager.gui;
+package me.Vxrtrauter.accountmanager.gui;
 
-import me.ksyz.accountmanager.AccountManager;
-import me.ksyz.accountmanager.auth.Account;
-import me.ksyz.accountmanager.auth.MicrosoftAuth;
-import me.ksyz.accountmanager.auth.SessionManager;
-import me.ksyz.accountmanager.utils.Notification;
-import me.ksyz.accountmanager.utils.SystemUtils;
-import me.ksyz.accountmanager.utils.TextFormatting;
+import me.Vxrtrauter.accountmanager.AccountManager;
+import me.Vxrtrauter.accountmanager.auth.Account;
+import me.Vxrtrauter.accountmanager.auth.MicrosoftAuth;
+import me.Vxrtrauter.accountmanager.auth.SessionManager;
+import me.Vxrtrauter.accountmanager.utils.Notification;
+import me.Vxrtrauter.accountmanager.utils.SystemUtils;
+import me.Vxrtrauter.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -182,7 +182,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
         }
         break;
         case 1: { // Cancel
-          mc.displayGuiScreen(new GuiAccountManager(previousScreen));
+          mc.displayGuiScreen((previousScreen));
         }
         break;
       }
