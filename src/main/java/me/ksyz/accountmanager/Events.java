@@ -54,7 +54,10 @@ public class Events {
         Field f = ReflectionHelper.findField(GuiDisconnected.class, "message", "field_146304_f");
         IChatComponent message = (IChatComponent) f.get(event.gui);
         String text = message.getFormattedText().split("\n\n")[0];
-        if (text.equals("§r§cYou are permanently banned from this server!")) {
+        if (
+          text.equals("§r§cYou are permanently banned from this server!") ||
+          text.equals("§r§cYour account has been blocked.")
+        ) {
           AccountManager.load();
           for (Account account : AccountManager.accounts) {
             if (mc.getSession().getUsername().equals(account.getUsername())) {
@@ -65,7 +68,10 @@ public class Events {
           return;
         }
 
-        if (text.matches("§r§cYou are temporarily banned for §r§f.*§r§c from this server!")) {
+        if (
+          text.matches("§r§cYou are temporarily banned for §r§f.*§r§c from this server!") ||
+          text.matches("§r§cYour account is temporarily blocked for §r§f.*§r§c from this server!")
+        ) {
           String unban = StringUtils.substringBetween(text, "§r§f", "§r§c");
           if (unban != null) {
             long time = System.currentTimeMillis();
