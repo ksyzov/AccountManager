@@ -1,4 +1,4 @@
-package me.Vxrtrauter.accountmanager.auth;
+package me.ksyzov.accountmanager.auth;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Session;

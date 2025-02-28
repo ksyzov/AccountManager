@@ -1,12 +1,12 @@
-package me.Vxrtrauter.accountmanager.gui;
+package me.ksyzov.accountmanager.gui;
 
-import me.Vxrtrauter.accountmanager.AccountManager;
-import me.Vxrtrauter.accountmanager.auth.Account;
-import me.Vxrtrauter.accountmanager.auth.MicrosoftAuth;
-import me.Vxrtrauter.accountmanager.auth.SessionManager;
-import me.Vxrtrauter.accountmanager.utils.Notification;
-import me.Vxrtrauter.accountmanager.utils.SystemUtils;
-import me.Vxrtrauter.accountmanager.utils.TextFormatting;
+import me.ksyzov.accountmanager.AccountManager;
+import me.ksyzov.accountmanager.auth.Account;
+import me.ksyzov.accountmanager.auth.MicrosoftAuth;
+import me.ksyzov.accountmanager.auth.SessionManager;
+import me.ksyzov.accountmanager.utils.Notification;
+import me.ksyzov.accountmanager.utils.SystemUtils;
+import me.ksyzov.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;

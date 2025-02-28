@@ -1,10 +1,10 @@
-package me.Vxrtrauter.accountmanager;
+package me.ksyzov.accountmanager;
 
 import com.google.gson.*;
-import me.Vxrtrauter.accountmanager.auth.Account;
-import me.Vxrtrauter.accountmanager.auth.AccountType;
-import me.Vxrtrauter.accountmanager.auth.CookieAuth;
-import me.Vxrtrauter.accountmanager.gui.GuiCookieAuth;
+import me.ksyzov.accountmanager.auth.Account;
+import me.ksyzov.accountmanager.auth.AccountType;
+import me.ksyzov.accountmanager.auth.CookieAuth;
+import me.ksyzov.accountmanager.gui.GuiCookieAuth;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.MinecraftForge;

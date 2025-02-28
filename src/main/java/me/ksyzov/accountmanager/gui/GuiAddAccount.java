@@ -1,4 +1,4 @@
-package me.Vxrtrauter.accountmanager.gui;
+package me.ksyzov.accountmanager.gui;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;

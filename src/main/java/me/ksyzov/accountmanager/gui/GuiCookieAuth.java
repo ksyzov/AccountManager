@@ -1,9 +1,7 @@
-package me.Vxrtrauter.accountmanager.gui;
+package me.ksyzov.accountmanager.gui;
 
-import me.Vxrtrauter.accountmanager.auth.CookieAuth;
-import me.Vxrtrauter.accountmanager.utils.Notification;
-import me.Vxrtrauter.accountmanager.utils.TextFormatting;
-import net.minecraft.client.Minecraft;
+import me.ksyzov.accountmanager.auth.CookieAuth;
+import me.ksyzov.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -12,13 +10,9 @@ import org.lwjgl.input.Keyboard;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 
 public class GuiCookieAuth extends GuiScreen {
     private final GuiScreen previousScreen;

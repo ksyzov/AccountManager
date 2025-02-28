@@ -1,6 +1,6 @@
-package me.Vxrtrauter.accountmanager.auth;
+package me.ksyzov.accountmanager.auth;
 
-import me.Vxrtrauter.accountmanager.AccountManager;
+import me.ksyzov.accountmanager.AccountManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Session;
 import java.lang.reflect.Field;

@@ -1,7 +1,7 @@
-package me.Vxrtrauter.accountmanager.gui;
+package me.ksyzov.accountmanager.gui;
 
-import me.Vxrtrauter.accountmanager.auth.CrackedAuth;
-import me.Vxrtrauter.accountmanager.utils.UsernameGenerator;
+import me.ksyzov.accountmanager.auth.CrackedAuth;
+import me.ksyzov.accountmanager.utils.UsernameGenerator;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiButton;

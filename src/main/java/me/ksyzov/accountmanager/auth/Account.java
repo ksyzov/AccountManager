@@ -1,4 +1,4 @@
-package me.Vxrtrauter.accountmanager.auth;
+package me.ksyzov.accountmanager.auth;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

@@ -1,4 +1,4 @@
-package me.Vxrtrauter.accountmanager.utils;
+package me.ksyzov.accountmanager.utils;
 
 @SuppressWarnings("unused")
 public enum TextFormatting {

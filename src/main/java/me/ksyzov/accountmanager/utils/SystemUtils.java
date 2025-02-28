@@ -1,4 +1,4 @@
-package me.Vxrtrauter.accountmanager.utils;
+package me.ksyzov.accountmanager.utils;
 
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
