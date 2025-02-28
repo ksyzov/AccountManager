@@ -8,3 +8,4 @@ Allows you to sign in to Microsoft accounts in-game.
 ### Credits:
 
 - ksyzov - for making the original mod
+- Vxrtrauter - for adding cookie login, cracked support & auto name gen
