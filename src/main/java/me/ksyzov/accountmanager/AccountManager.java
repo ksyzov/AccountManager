@@ -49,7 +49,7 @@ public class AccountManager {
         JsonArray jsonArray = json.getAsJsonArray();
         for (JsonElement jsonElement : jsonArray) {
           JsonObject jsonObject = jsonElement.getAsJsonObject();
-          accounts.add(Account.fromJson(jsonObject)); // Use the fromJson method
+          accounts.add(Account.fromJson(jsonObject)); 
         }
       }
     } catch (FileNotFoundException e) {
@@ -61,7 +61,7 @@ public class AccountManager {
     try {
       JsonArray jsonArray = new JsonArray();
       for (Account account : accounts) {
-        jsonArray.add(account.toJson()); // Use the toJson method
+        jsonArray.add(account.toJson()); 
       }
       PrintWriter printWriter = new PrintWriter(new FileWriter(file));
       printWriter.println(gson.toJson(jsonArray));
