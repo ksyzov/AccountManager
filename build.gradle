@@ -34,11 +34,11 @@ minecraft {
 }
 
 repositories {
-    mavenCentral() // Add this to ensure Gson can be downloaded
+    mavenCentral() 
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.9' // Add Gson dependency here
+    implementation 'com.google.code.gson:gson:2.8.9' 
 }
 
 processResources {
