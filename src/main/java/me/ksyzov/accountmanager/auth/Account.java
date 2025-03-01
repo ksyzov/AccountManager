@@ -10,19 +10,18 @@ public class Account {
   private String accessToken;
   private String username;
   private long unban;
-  private AccountType type; // Use the AccountType enum
+  private AccountType type;
 
-  // Constructor for premium accounts
+
   public Account(String refreshToken, String accessToken, String username) {
     this(refreshToken, accessToken, username, 0L, AccountType.PREMIUM);
   }
 
-  // Constructor for premium accounts with unban timestamp
   public Account(String refreshToken, String accessToken, String username, long unban) {
     this(refreshToken, accessToken, username, unban, AccountType.PREMIUM);
   }
 
-  // Full constructor for all account types
+
   public Account(String refreshToken, String accessToken, String username, long unban, AccountType type) {
     this.refreshToken = refreshToken;
     this.accessToken = accessToken;
@@ -31,7 +30,7 @@ public class Account {
     this.type = type;
   }
 
-  // Getters
+
   public String getRefreshToken() {
     return refreshToken;
   }
@@ -52,7 +51,6 @@ public class Account {
     return type;
   }
 
-  // Setters
   public void setRefreshToken(String refreshToken) {
     this.refreshToken = refreshToken;
   }
@@ -73,7 +71,6 @@ public class Account {
     this.type = type;
   }
 
-  // Serialize the account to a JSON object
   public JsonObject toJson() {
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("refreshToken", refreshToken);
@@ -84,7 +81,6 @@ public class Account {
     return jsonObject;
   }
 
-  // Deserialize a JSON object to an Account
   public static Account fromJson(JsonObject jsonObject) {
     return new Account(
             Optional.ofNullable(jsonObject.get("refreshToken")).map(JsonElement::getAsString).orElse(""),
