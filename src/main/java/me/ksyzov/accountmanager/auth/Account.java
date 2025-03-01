@@ -77,7 +77,7 @@ public class Account {
     jsonObject.addProperty("accessToken", accessToken);
     jsonObject.addProperty("username", username);
     jsonObject.addProperty("unban", unban);
-    jsonObject.addProperty("type", type.toString()); // Save the account type
+    jsonObject.addProperty("type", type.toString()); 
     return jsonObject;
   }
 
@@ -87,7 +87,7 @@ public class Account {
             Optional.ofNullable(jsonObject.get("accessToken")).map(JsonElement::getAsString).orElse(""),
             Optional.ofNullable(jsonObject.get("username")).map(JsonElement::getAsString).orElse(""),
             Optional.ofNullable(jsonObject.get("unban")).map(JsonElement::getAsLong).orElse(0L),
-            Optional.ofNullable(jsonObject.get("type")).map(JsonElement::getAsString).map(AccountType::valueOf).orElse(AccountType.PREMIUM) // Default to PREMIUM if type is missing
+            Optional.ofNullable(jsonObject.get("type")).map(JsonElement::getAsString).map(AccountType::valueOf).orElse(AccountType.PREMIUM) 
     );
   }
 
