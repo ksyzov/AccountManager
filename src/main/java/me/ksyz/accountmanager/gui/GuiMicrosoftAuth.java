@@ -30,6 +30,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
   private String cause = null;
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
+  private boolean success = false;
 
   public GuiMicrosoftAuth(GuiScreen previousScreen) {
     this.previousScreen = previousScreen;
@@ -106,10 +107,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
           AccountManager.accounts.add(acc);
           AccountManager.save();
           SessionManager.set(session);
-          mc.displayGuiScreen(new GuiAccountManager(previousScreen,
-            new Notification(TextFormatting.translate(String.format(
-              "&aSuccessful login! (%s)&r", session.getUsername()
-            )), 5000L)));
+          success = true;
         })
         .exceptionally(error -> {
           openButtonEnabled = false;
@@ -125,6 +123,23 @@ public class GuiMicrosoftAuth extends GuiScreen {
     if (task != null && !task.isDone()) {
       task.cancel(true);
       executor.shutdownNow();
+    }
+  }
+
+  @Override
+  public void updateScreen() {
+    if (success) {
+      mc.displayGuiScreen(new GuiAccountManager(
+        previousScreen,
+        new Notification(
+          TextFormatting.translate(String.format(
+            "&aSuccessful login! (%s)&r",
+            SessionManager.get().getUsername()
+          )),
+          5000L
+        )
+      ));
+      success = false;
     }
   }
 
