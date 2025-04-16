@@ -2,6 +2,7 @@ package me.ksyz.accountmanager.auth;
 
 import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
+import me.ksyz.accountmanager.utils.SSLUtil;
 import net.minecraft.util.Session;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -13,8 +14,11 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -137,9 +141,29 @@ public final class MicrosoftAuth {
     }, executor);
   }
 
+  private static CloseableHttpClient createTrustedHttpClient() {
+    try {
+      javax.net.ssl.SSLSocketFactory socketFactory = SSLUtil.getSSLContext().getSocketFactory();
+
+      SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+              socketFactory,
+              new String[] { "TLSv1.2" },
+              null,
+              new BrowserCompatHostnameVerifier()
+      );
+
+      return HttpClientBuilder.create()
+              .setSSLSocketFactory(sslsf)
+              .build();
+    } catch (Exception e) {
+      e.printStackTrace();
+      return HttpClients.createDefault();
+    }
+  }
+
   public static CompletableFuture<Map<String, String>> acquireMSAccessTokens(String authCode, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpPost request = new HttpPost(URI.create("https://login.live.com/oauth20_token.srf"));
         request.setConfig(REQUEST_CONFIG);
@@ -192,7 +216,7 @@ public final class MicrosoftAuth {
 
   public static CompletableFuture<Map<String, String>> refreshMSAccessTokens(String msToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpPost request = new HttpPost(URI.create("https://login.live.com/oauth20_token.srf"));
         request.setConfig(REQUEST_CONFIG);
@@ -245,7 +269,7 @@ public final class MicrosoftAuth {
 
   public static CompletableFuture<String> acquireXboxAccessToken(String accessToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpPost request = new HttpPost(URI.create("https://user.auth.xboxlive.com/user/authenticate"));
         JsonObject entity = new JsonObject();
@@ -286,7 +310,7 @@ public final class MicrosoftAuth {
 
   public static CompletableFuture<Map<String, String>> acquireXboxXstsToken(String accessToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpPost request = new HttpPost("https://xsts.auth.xboxlive.com/xsts/authorize");
         JsonObject entity = new JsonObject();
@@ -341,7 +365,7 @@ public final class MicrosoftAuth {
 
   public static CompletableFuture<String> acquireMCAccessToken(String xstsToken, String userHash, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpPost request = new HttpPost(URI.create("https://api.minecraftservices.com/authentication/login_with_xbox"));
         request.setConfig(REQUEST_CONFIG);
@@ -375,7 +399,7 @@ public final class MicrosoftAuth {
 
   public static CompletableFuture<Session> login(String mcToken, Executor executor) {
     return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createMinimal()) {
+      try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
         HttpGet request = new HttpGet(URI.create("https://api.minecraftservices.com/minecraft/profile"));
         request.setConfig(REQUEST_CONFIG);

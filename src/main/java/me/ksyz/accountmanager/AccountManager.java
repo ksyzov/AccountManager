@@ -3,6 +3,7 @@ package me.ksyz.accountmanager;
 
 import com.google.gson.*;
 import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.utils.SSLUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -23,6 +24,7 @@ public class AccountManager {
 
   @EventHandler
   public static void init(FMLInitializationEvent event) {
+    SSLUtil.getSSLContext();
     MinecraftForge.EVENT_BUS.register(new Events());
 
     if (!file.exists()) {
