@@ -3,13 +3,14 @@ package me.ksyz.accountmanager;
 
 import com.google.gson.*;
 import me.ksyz.accountmanager.auth.Account;
-import me.ksyz.accountmanager.utils.SSLUtil;
+import me.ksyz.accountmanager.utils.SSLUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
+import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -24,7 +25,7 @@ public class AccountManager {
 
   @EventHandler
   public static void init(FMLInitializationEvent event) {
-    SSLUtil.getSSLContext();
+    SSLContext ignored = SSLUtils.getSSLContext();
     MinecraftForge.EVENT_BUS.register(new Events());
 
     if (!file.exists()) {

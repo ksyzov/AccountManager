@@ -2,7 +2,7 @@ package me.ksyz.accountmanager.auth;
 
 import com.google.gson.*;
 import com.sun.net.httpserver.HttpServer;
-import me.ksyz.accountmanager.utils.SSLUtil;
+import me.ksyz.accountmanager.utils.SSLUtils;
 import net.minecraft.util.Session;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,17 +37,37 @@ import java.util.stream.Collectors;
 
 // Based on Auth Me (https://github.com/axieum/authme)
 public final class MicrosoftAuth {
+  private static CloseableHttpClient createTrustedHttpClient() {
+    try {
+      SSLConnectionSocketFactory sf = new SSLConnectionSocketFactory(
+        SSLUtils.getSSLContext().getSocketFactory(),
+        new String[]{"TLSv1.2"},
+        null,
+        new BrowserCompatHostnameVerifier()
+      );
+      return HttpClientBuilder.create()
+        .setSSLSocketFactory(sf)
+        .build();
+    } catch (Exception ignored) {
+      //
+    }
+
+    return HttpClients.createDefault();
+  }
+
   // A reusable Apache HTTP request config
-  public static final RequestConfig REQUEST_CONFIG = RequestConfig
+  private static final RequestConfig REQUEST_CONFIG = RequestConfig
     .custom()
     .setConnectionRequestTimeout(30_000)
     .setConnectTimeout(30_000)
     .setSocketTimeout(30_000)
     .build();
+
   // Account Manager
-  public static final String CLIENT_ID = "42a60a84-599d-44b2-a7c6-b00cdef1d6a2";
+  private static final String CLIENT_ID = "42a60a84-599d-44b2-a7c6-b00cdef1d6a2";
+
   // 25565 + 10
-  public static final int PORT = 25575;
+  private static final int PORT = 25575;
 
   public static URI getMSAuthLink(String state) {
     try {
@@ -139,26 +159,6 @@ public final class MicrosoftAuth {
         throw new CompletionException("Unable to acquire Microsoft auth code!", e);
       }
     }, executor);
-  }
-
-  private static CloseableHttpClient createTrustedHttpClient() {
-    try {
-      javax.net.ssl.SSLSocketFactory socketFactory = SSLUtil.getSSLContext().getSocketFactory();
-
-      SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-              socketFactory,
-              new String[] { "TLSv1.2" },
-              null,
-              new BrowserCompatHostnameVerifier()
-      );
-
-      return HttpClientBuilder.create()
-              .setSSLSocketFactory(sslsf)
-              .build();
-    } catch (Exception e) {
-      e.printStackTrace();
-      return HttpClients.createDefault();
-    }
   }
 
   public static CompletableFuture<Map<String, String>> acquireMSAccessTokens(String authCode, Executor executor) {
