@@ -3,11 +3,11 @@
     "modid": "accountmanager",
     "name": "Account Manager",
     "description": "Allows you to sign in to Microsoft accounts in-game.",
-    "version": "${version}",
-    "mcversion": "${mcversion}",
+    "version": "1.5",
+    "mcversion": "1.8.9",
     "url": "https://github.com/lquifi/AccountManager",
     "authorList": [
-      "ksyz"
+      "ksyz, lquifi"
     ]
   }
 ]

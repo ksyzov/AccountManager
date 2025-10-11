@@ -12,20 +12,12 @@ plugins {
     id("net.kyori.blossom") version "1.3.1"
 }
 
-val version: String = ByteArrayOutputStream().use {
-    exec {
-        commandLine("git", "rev-parse", "--short", "HEAD")
-        standardOutput = it
-    }
-    it.toString().trim()
-}
+val mcVersion: String by project
+val modid: String by project
+val version: String by project
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
-}
-
-blossom {
-    replaceToken("@VERSION@", version)
 }
 
 loom {
@@ -81,28 +73,25 @@ tasks.withType(JavaCompile::class) {
     options.encoding = "UTF-8"
 }
 
-tasks.withType(Jar::class) {
-    archiveBaseName.set("ViaForge")
+tasks.withType(org.gradle.jvm.tasks.Jar::class) {
+    archiveBaseName.set(modid)
     manifest.attributes.run {
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
+
         this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
-        this["MixinConfigs"] = "mixins.viaforge.json"
     }
 }
 
 tasks.processResources {
-    inputs.property("version", version)
-    inputs.property("mcversion", "1.8.9")
-    filesMatching(listOf("mcmod.info", "mixins.viaforge.json")) {
-        expand(inputs.properties)
-    }
-
-    rename("(.+_at.cfg)", "META-INF/$1")
+    inputs.property("version", project.version)
+    inputs.property("mcversion", mcVersion)
+    inputs.property("modid", modid)
 }
 
-val remapJar by tasks.named<RemapJarTask>("remapJar") {
-    archiveClassifier.set(version)
+
+val remapJar by tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar") {
+    archiveClassifier.set("")
     from(tasks.shadowJar)
     input.set(tasks.shadowJar.get().archiveFile)
 }
