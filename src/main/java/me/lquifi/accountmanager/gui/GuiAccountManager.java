@@ -350,8 +350,10 @@ public class GuiAccountManager extends GuiScreen {
       String username = account.getUsername();
       if (StringUtils.isBlank(username)) {
         username = "&7&l?";
-      } else if (username.equals(SessionManager.get().getUsername())) {
+      } else if (account.getAccessToken().equals(SessionManager.get().getToken())) {
         username = String.format("&a&l%s", username);
+      } else if (username.equals(SessionManager.get().getUsername())) {
+        username = String.format("&a%s", username);
       }
       String accountTypeSuffix = account.getType() == AccountType.CRACKED
               ? " &7(Cracked)"
