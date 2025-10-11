@@ -1,7 +1,7 @@
-package me.ksyzov.accountmanager.gui;
+package me.lquifi.accountmanager.gui;
 
-import me.ksyzov.accountmanager.auth.CrackedAuth;
-import me.ksyzov.accountmanager.utils.UsernameGenerator;
+import me.lquifi.accountmanager.auth.CrackedAuth;
+import me.lquifi.accountmanager.utils.UsernameGenerator;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiButton;

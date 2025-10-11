@@ -1,7 +1,7 @@
-package me.ksyzov.accountmanager.gui;
+package me.lquifi.accountmanager.gui;
 
-import me.ksyzov.accountmanager.auth.CookieAuth;
-import me.ksyzov.accountmanager.utils.TextFormatting;
+import me.lquifi.accountmanager.auth.CookieAuth;
+import me.lquifi.accountmanager.utils.TextFormatting;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -104,9 +104,6 @@ public class GuiCookieAuth extends GuiScreen {
             actionPerformed(cancelButton);
         }
     }
-
-
-
 
     @Override
     protected void actionPerformed(GuiButton button) {

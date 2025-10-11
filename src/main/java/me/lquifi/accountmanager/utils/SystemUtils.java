@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.utils;
+package me.lquifi.accountmanager.utils;
 
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;

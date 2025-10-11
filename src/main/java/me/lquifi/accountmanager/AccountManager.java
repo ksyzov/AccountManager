@@ -1,10 +1,10 @@
-package me.ksyzov.accountmanager;
+package me.lquifi.accountmanager;
 
 import com.google.gson.*;
-import me.ksyzov.accountmanager.auth.Account;
-import me.ksyzov.accountmanager.auth.AccountType;
-import me.ksyzov.accountmanager.auth.CookieAuth;
-import me.ksyzov.accountmanager.gui.GuiCookieAuth;
+import me.lquifi.accountmanager.auth.Account;
+import me.lquifi.accountmanager.auth.AccountType;
+import me.lquifi.accountmanager.auth.CookieAuth;
+import me.lquifi.accountmanager.gui.GuiCookieAuth;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.MinecraftForge;

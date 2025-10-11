@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.utils;
+package me.lquifi.accountmanager.utils;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -69,11 +69,16 @@ public class UsernameGenerator {
             String prefix = acceptableUsernames.get((int) (Math.random() * acceptableUsernames.size()));
             String suffix = acceptableUsernames.get((int) (Math.random() * acceptableUsernames.size()));
             String username = applyPattern(prefix, suffix);
-            generated[i] = applyPattern(username);
+            String name = "myau_" + applyPattern(username);
+            if (name.length() > 16) {
+                name = name.substring(0, 16);
+            }
+            generated[i] = name;
         }
 
         return generated;
     }
+
 
     /**
      * Applies a pattern on the given prefix and suffix and converts it to one username.

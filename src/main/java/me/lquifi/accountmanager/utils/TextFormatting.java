@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.utils;
+package me.lquifi.accountmanager.utils;
 
 @SuppressWarnings("unused")
 public enum TextFormatting {

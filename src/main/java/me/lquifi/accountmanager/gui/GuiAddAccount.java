@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.gui;
+package me.lquifi.accountmanager.gui;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -16,7 +16,8 @@ public class GuiAddAccount extends GuiScreen {
         buttonList.add(new GuiButton(0, width / 2 - 100, height / 2 - 30, 200, 20, "Microsoft"));
         buttonList.add(new GuiButton(1, width / 2 - 100, height / 2, 200, 20, "Cookie"));
         buttonList.add(new GuiButton(2, width / 2 - 100, height / 2 + 30, 200, 20, "Cracked"));
-        buttonList.add(new GuiButton(3, width / 2 - 100, height / 2 + 60, 200, 20, "Back"));
+        buttonList.add(new GuiButton(3, width / 2 - 100, height / 2 + 60, 200, 20, "Token"));
+        buttonList.add(new GuiButton(4, width / 2 - 100, height / 2 + 90, 200, 20, "Back"));
     }
 
     @Override
@@ -47,7 +48,10 @@ public class GuiAddAccount extends GuiScreen {
             case 2: // Cracked
                 mc.displayGuiScreen(new GuiCrackedAuth(this));
                 break;
-            case 3: // Back
+            case 3: // Token
+                mc.displayGuiScreen(new GuiTokenAuth(this));
+                break;
+            case 4: // Back
                 mc.displayGuiScreen(new GuiAccountManager(previousScreen));
                 break;
         }

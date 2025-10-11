@@ -1,9 +1,9 @@
-package me.ksyzov.accountmanager;
+package me.lquifi.accountmanager;
 
-import me.ksyzov.accountmanager.auth.Account;
-import me.ksyzov.accountmanager.auth.SessionManager;
-import me.ksyzov.accountmanager.gui.GuiAccountManager;
-import me.ksyzov.accountmanager.utils.TextFormatting;
+import me.lquifi.accountmanager.auth.Account;
+import me.lquifi.accountmanager.auth.SessionManager;
+import me.lquifi.accountmanager.gui.GuiAccountManager;
+import me.lquifi.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiDisconnected;

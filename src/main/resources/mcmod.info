@@ -5,7 +5,7 @@
     "description": "Allows you to sign in to Microsoft accounts in-game.",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "url": "https://github.com/ksyzov/AccountManager",
+    "url": "https://github.com/lquifi/AccountManager",
     "authorList": [
       "ksyz"
     ]

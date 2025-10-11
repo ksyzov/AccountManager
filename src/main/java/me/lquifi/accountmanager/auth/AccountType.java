@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.auth;
+package me.lquifi.accountmanager.auth;
 
 public enum AccountType {
     CRACKED, // For cracked (offline) accounts

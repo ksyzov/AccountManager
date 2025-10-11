@@ -1,4 +1,4 @@
-package me.ksyzov.accountmanager.auth;
+package me.lquifi.accountmanager.auth;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

@@ -1,13 +1,13 @@
-package me.ksyzov.accountmanager.gui;
+package me.lquifi.accountmanager.gui;
 
-import me.ksyzov.accountmanager.AccountManager;
-import me.ksyzov.accountmanager.auth.Account;
-import me.ksyzov.accountmanager.auth.AccountType;
-import me.ksyzov.accountmanager.auth.CrackedAuth;
-import me.ksyzov.accountmanager.auth.MicrosoftAuth;
-import me.ksyzov.accountmanager.auth.SessionManager;
-import me.ksyzov.accountmanager.utils.Notification;
-import me.ksyzov.accountmanager.utils.TextFormatting;
+import me.lquifi.accountmanager.AccountManager;
+import me.lquifi.accountmanager.auth.Account;
+import me.lquifi.accountmanager.auth.AccountType;
+import me.lquifi.accountmanager.auth.CrackedAuth;
+import me.lquifi.accountmanager.auth.MicrosoftAuth;
+import me.lquifi.accountmanager.auth.SessionManager;
+import me.lquifi.accountmanager.utils.Notification;
+import me.lquifi.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
 import org.apache.commons.lang3.StringUtils;
