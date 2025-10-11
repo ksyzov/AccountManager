@@ -1,5 +1,6 @@
 package me.lquifi.accountmanager.auth;
 
+import me.lquifi.accountmanager.AccountManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Session;
 
@@ -24,10 +25,10 @@ public class TokenAuth {
 
             setMinecraftSession(session);
             SessionManager.set(session);
+            AccountManager.save();
             return true;
 
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            System.err.println("Login failed: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -40,7 +41,6 @@ public class TokenAuth {
             sessionField.setAccessible(true);
             sessionField.set(mc, session);
         } catch (Exception e) {
-            System.err.println("Failed to set Minecraft session: " + e.getMessage());
             e.printStackTrace();
         }
     }
