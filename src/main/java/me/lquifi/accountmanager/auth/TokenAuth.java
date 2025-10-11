@@ -16,21 +16,14 @@ public class TokenAuth {
         }
 
         try {
-            // Fetch Minecraft profile asynchronously and wait for result (timeout after 30 sec)
             Session session = MicrosoftAuth.login(mcAccessToken, executor).get(30, TimeUnit.SECONDS);
 
             if (session == null) {
-                System.err.println("Failed to fetch Minecraft session profile.");
                 return false;
             }
 
-            // Set Minecraft session via reflection
             setMinecraftSession(session);
-
-            // Set in your SessionManager (if applicable)
             SessionManager.set(session);
-
-            System.out.println("Successfully logged in with access token for user: " + session.getUsername());
             return true;
 
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
