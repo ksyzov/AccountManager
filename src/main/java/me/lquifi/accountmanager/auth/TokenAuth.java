@@ -10,29 +10,36 @@ public class TokenAuth {
 
     private static final Executor executor = Executors.newCachedThreadPool();
 
-    public static boolean login(String mcAccessToken) {
+    public static Session loginSession(String mcAccessToken) {
         if (mcAccessToken == null || mcAccessToken.trim().isEmpty()) {
-            System.err.println("Access token cannot be null or empty!");
-            return false;
+            return null;
         }
-
         try {
             Session session = MicrosoftAuth.login(mcAccessToken, executor).get(30, TimeUnit.SECONDS);
-
-            if (session == null) {
-                return false;
-            }
-
+            if (session == null) return null;
             setMinecraftSession(session);
             SessionManager.set(session);
-            AccountManager.save();
-            return true;
-
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return session;
+        } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
+
+    public static boolean addAccount(String mcAccessToken) {
+        Session session = loginSession(mcAccessToken);
+        if (session == null) return false;
+
+        AccountManager.accounts.add(new Account(
+                "",
+                mcAccessToken,
+                session.getUsername(),
+                System.currentTimeMillis()
+        ));
+        AccountManager.save();
+        return true;
+    }
+
 
     private static void setMinecraftSession(Session session) {
         try {

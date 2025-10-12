@@ -4,6 +4,7 @@ import me.lquifi.accountmanager.auth.TokenAuth;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.util.Session;
 import org.lwjgl.input.Keyboard;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,8 +35,9 @@ public class GuiTokenAuth extends GuiScreen {
         tokenField.setFocused(true);
 
         buttonList.clear();
-        buttonList.add(loginButton = new GuiButton(0, width / 2 - 75 - 2, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, 75, 20, "Login"));
-        buttonList.add(cancelButton = new GuiButton(1, width / 2 + 2, height / 2 + fontRendererObj.FONT_HEIGHT / 2 + fontRendererObj.FONT_HEIGHT, 75, 20, "Cancel"));
+        buttonList.add(loginButton = new GuiButton(0, width / 2 - 112, height / 2 + fontRendererObj.FONT_HEIGHT * 2, 75, 20, "Login"));
+        buttonList.add(new GuiButton(2, width / 2 - 37, height / 2 + fontRendererObj.FONT_HEIGHT * 2, 75, 20, "Add"));
+        buttonList.add(cancelButton = new GuiButton(1, width / 2 + 38, height / 2 + fontRendererObj.FONT_HEIGHT * 2, 75, 20, "Cancel"));
 
         status = null;
     }
@@ -77,9 +79,7 @@ public class GuiTokenAuth extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
-        if (button == null || !button.enabled) {
-            return;
-        }
+        if (button == null || !button.enabled) return;
 
         switch (button.id) {
             case 0:
@@ -88,30 +88,26 @@ public class GuiTokenAuth extends GuiScreen {
             case 1:
                 mc.displayGuiScreen(previousScreen);
                 break;
+            case 2:
+                handleAdd();
+                break;
         }
     }
 
+
     private void handleLogin() {
         String token = tokenField.getText().trim();
-
         if (token.isEmpty()) {
             status = "§cEnter a token dumbass.";
             return;
         }
-
         status = "Logging in...";
-
         CompletableFuture.runAsync(() -> {
-            boolean loginSuccess = TokenAuth.login(token);
-
+            Session session = TokenAuth.loginSession(token);
             SwingUtilities.invokeLater(() -> {
-                if (loginSuccess) {
-                    status = "§aSuccessfully logged in!";
-
-                    scheduler.schedule(() -> {
-                        mc.displayGuiScreen(new GuiAccountManager(previousScreen));
-                    }, 500, TimeUnit.MILLISECONDS);
-
+                if (session != null) {
+                    status = "§aLogged in as " + session.getUsername();
+                    scheduler.schedule(() -> mc.displayGuiScreen(new GuiAccountManager(previousScreen)), 500, TimeUnit.MILLISECONDS);
                 } else {
                     status = "§cFailed to log in.";
                 }
@@ -119,6 +115,25 @@ public class GuiTokenAuth extends GuiScreen {
         });
     }
 
+    private void handleAdd() {
+        String token = tokenField.getText().trim();
+        if (token.isEmpty()) {
+            status = "§cEnter a token dumbass.";
+            return;
+        }
+        status = "Adding account...";
+        CompletableFuture.runAsync(() -> {
+            boolean success = TokenAuth.addAccount(token);
+            SwingUtilities.invokeLater(() -> {
+                if (success) {
+                    status = "§aAccount added!";
+                    scheduler.schedule(() -> mc.displayGuiScreen(new GuiAccountManager(previousScreen)), 500, TimeUnit.MILLISECONDS);
+                } else {
+                    status = "§cFailed to add account.";
+                }
+            });
+        });
+    }
 
     @Override
     public void updateScreen() {

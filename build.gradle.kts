@@ -9,7 +9,6 @@ plugins {
     id("gg.essential.loom") version "0.10.0.5"
     id("dev.architectury.architectury-pack200") version "0.1.3"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("net.kyori.blossom") version "1.3.1"
 }
 
 val mcVersion: String by project
@@ -20,40 +19,8 @@ java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 }
 
-loom {
-    log4jConfigs.from(file("log4j2.xml"))
-    launchConfigs {
-        "client" {
-            property("mixin.debug", "true")
-            property("asmhelper.verbose", "true")
-            arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
-        }
-    }
-    runConfigs {
-        "client" {
-            if (SystemUtils.IS_OS_MAC_OSX) {
-                vmArgs.remove("-XstartOnFirstThread")
-            }
-        }
-        remove(getByName("server"))
-    }
-    forge {
-        pack200Provider.set(Pack200Adapter())
-        mixinConfig("mixins.viaforge.json")
-    }
-    @Suppress("UnstableApiUsage")
-    mixin {
-        defaultRefmapName.set("mixins.viaforge.refmap.json")
-    }
-}
-
 sourceSets.main {
     output.setResourcesDir(sourceSets.main.flatMap { it.java.classesDirectory })
-}
-
-repositories {
-    mavenCentral()
-    maven("https://repo.spongepowered.org/maven/")
 }
 
 val shadowImpl: Configuration by configurations.creating {
@@ -64,8 +31,6 @@ dependencies {
     minecraft("com.mojang:minecraft:1.8.9")
     mappings("de.oceanlabs.mcp:mcp_stable:22-1.8.9")
     forge("net.minecraftforge:forge:1.8.9-11.15.1.2318-1.8.9")
-    shadowImpl("org.spongepowered:mixin:0.7.11-SNAPSHOT") { isTransitive = false }
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
     shadowImpl(fileTree("libs") { include("*.jar") })
 }
 
@@ -78,8 +43,6 @@ tasks.withType(org.gradle.jvm.tasks.Jar::class) {
     manifest.attributes.run {
         this["FMLCorePluginContainsFMLMod"] = "true"
         this["ForceLoadAsMod"] = "true"
-
-        this["TweakClass"] = "org.spongepowered.asm.launch.MixinTweaker"
     }
 }
 
