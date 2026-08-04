@@ -44,6 +44,7 @@ public class GuiAccountManager extends GuiScreen {
   @Override
   public void initGui() {
     AccountManager.load();
+    selectedAccount = findInitialSelectedAccount();
     Keyboard.enableRepeatEvents(true);
 
     buttonList.clear();
@@ -193,6 +194,8 @@ public class GuiAccountManager extends GuiScreen {
               SessionManager.set(new net.minecraft.util.Session(
                 account.getUsername(), "", "", net.minecraft.util.Session.Type.LEGACY.toString()
               ));
+              AccountManager.markLastLoggedIn(account);
+              AccountManager.save();
               notification = new Notification(TextFormatting.translate(String.format(
                 "&aSuccessful login! (%s)&r", account.getUsername()
               )), 5000L);
@@ -212,6 +215,7 @@ public class GuiAccountManager extends GuiScreen {
                 if (session != null) {
                   account.setUsername(session.getUsername());
                   account.setLastAuthError("");
+                  AccountManager.markLastLoggedIn(account);
                   if (account.getAccessTokenExpiresAt() <= 0L) {
                     account.setAccessTokenExpiresAt(
                       MicrosoftAuth.getAccessTokenExpiration(account.getAccessToken())
@@ -284,6 +288,7 @@ public class GuiAccountManager extends GuiScreen {
                   MicrosoftAuth.getAccessTokenExpiration(accessToken.get())
                 );
                 account.setLastAuthError("");
+                AccountManager.markLastLoggedIn(account);
                 AccountManager.save();
                 SessionManager.set(session);
                 notification = new Notification(TextFormatting.translate(String.format(
@@ -344,6 +349,23 @@ public class GuiAccountManager extends GuiScreen {
       current = current.getCause();
     }
     return StringUtils.defaultIfBlank(current.getMessage(), "Authentication failed.");
+  }
+
+  private static int findInitialSelectedAccount() {
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (AccountManager.accounts.get(index).isLastLoggedIn()) {
+        return index;
+      }
+    }
+
+    String currentUsername = SessionManager.get().getUsername();
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (currentUsername.equalsIgnoreCase(AccountManager.accounts.get(index).getUsername())) {
+        return index;
+      }
+    }
+
+    return -1;
   }
 
   private static String getAuthenticationStatus(Account account) {

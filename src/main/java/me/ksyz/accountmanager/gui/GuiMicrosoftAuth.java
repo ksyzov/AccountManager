@@ -117,6 +117,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
             }
           }
           AccountManager.accounts.add(acc);
+          AccountManager.markLastLoggedIn(acc);
           AccountManager.save();
           SessionManager.set(session);
           success = true;

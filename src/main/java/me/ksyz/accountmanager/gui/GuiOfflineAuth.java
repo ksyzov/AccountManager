@@ -155,6 +155,7 @@ public class GuiOfflineAuth extends GuiScreen {
       }
     }
     AccountManager.accounts.add(account);
+    AccountManager.markLastLoggedIn(account);
     AccountManager.save();
     SessionManager.set(new Session(
       username, "", "", Session.Type.LEGACY.toString()

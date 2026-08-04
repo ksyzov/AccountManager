@@ -33,6 +33,7 @@ public class Account {
   private String oauthClientId;
   private long accessTokenExpiresAt;
   private String lastAuthError;
+  private boolean lastLoggedIn;
 
   public Account(String refreshToken, String accessToken, String username) {
     this(refreshToken, accessToken, username, 0L);
@@ -94,6 +95,10 @@ public class Account {
     return lastAuthError == null ? "" : lastAuthError;
   }
 
+  public boolean isLastLoggedIn() {
+    return lastLoggedIn;
+  }
+
   public void setRefreshToken(String refreshToken) {
     this.refreshToken = refreshToken;
   }
@@ -124,5 +129,9 @@ public class Account {
 
   public void setLastAuthError(String lastAuthError) {
     this.lastAuthError = lastAuthError == null ? "" : lastAuthError;
+  }
+
+  public void setLastLoggedIn(boolean lastLoggedIn) {
+    this.lastLoggedIn = lastLoggedIn;
   }
 }

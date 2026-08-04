@@ -280,6 +280,7 @@ public class GuiRefreshTokenAuth extends GuiScreen {
       }
     }
     AccountManager.accounts.add(account);
+    AccountManager.markLastLoggedIn(account);
     AccountManager.save();
     SessionManager.set(session);
     status = null;
