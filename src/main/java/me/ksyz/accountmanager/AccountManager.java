@@ -4,6 +4,7 @@ package me.ksyz.accountmanager;
 import com.google.gson.*;
 import me.ksyz.accountmanager.auth.Account;
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
+import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.SSLUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
@@ -24,6 +25,7 @@ public class AccountManager {
   private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
   public static final ArrayList<Account> accounts = new ArrayList<>();
+  private static Account currentSessionAccount;
 
   @EventHandler
   public static void init(FMLInitializationEvent event) {
@@ -45,6 +47,7 @@ public class AccountManager {
 
   public static void load() {
     accounts.clear();
+    currentSessionAccount = null;
     try {
       JsonElement json = new JsonParser().parse(
         new BufferedReader(new FileReader(file))
@@ -78,12 +81,16 @@ public class AccountManager {
     } catch (FileNotFoundException e) {
       System.err.print("Couldn't find accounts.json!");
     }
+    addCurrentSessionAccount();
   }
 
   public static void save() {
     try {
       JsonArray jsonArray = new JsonArray();
       for (Account account : accounts) {
+        if (account == currentSessionAccount) {
+          continue;
+        }
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("refreshToken", account.getRefreshToken());
         jsonObject.addProperty("accessToken", account.getAccessToken());
@@ -103,8 +110,47 @@ public class AccountManager {
     }
   }
 
-  public static Account findDuplicateAccount(Account candidate) {
+  private static void addCurrentSessionAccount() {
+    net.minecraft.util.Session session = SessionManager.get();
+    if (session == null || StringUtils.isBlank(session.getUsername())) {
+      return;
+    }
+
+    Account.AuthenticationType authenticationType =
+      net.minecraft.util.Session.Type.LEGACY.equals(session.getSessionType())
+        ? Account.AuthenticationType.OFFLINE
+        : Account.AuthenticationType.MICROSOFT;
     for (Account account : accounts) {
+      if (
+        account.getAuthenticationType() == authenticationType
+          && session.getUsername().equalsIgnoreCase(account.getUsername())
+      ) {
+        return;
+      }
+    }
+
+    currentSessionAccount = new Account(
+      "",
+      session.getToken(),
+      session.getUsername(),
+      0L,
+      authenticationType,
+      "",
+      MicrosoftAuth.getAccessTokenExpiration(session.getToken()),
+      ""
+    );
+    accounts.add(0, currentSessionAccount);
+  }
+
+  public static Account findDuplicateAccount(Account candidate) {
+    return findDuplicateAccount(candidate, null);
+  }
+
+  public static Account findDuplicateAccount(Account candidate, Account ignoredAccount) {
+    for (Account account : accounts) {
+      if (account == ignoredAccount) {
+        continue;
+      }
       if (account.getAuthenticationType() != candidate.getAuthenticationType()) {
         continue;
       }
