@@ -3,6 +3,7 @@ package me.ksyz.accountmanager;
 
 import com.google.gson.*;
 import me.ksyz.accountmanager.auth.Account;
+import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.utils.SSLUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
@@ -51,11 +52,25 @@ public class AccountManager {
         JsonArray jsonArray = json.getAsJsonArray();
         for (JsonElement jsonElement : jsonArray) {
           JsonObject jsonObject = jsonElement.getAsJsonObject();
+          String accessToken = Optional.ofNullable(jsonObject.get("accessToken"))
+            .map(JsonElement::getAsString).orElse("");
+          long accessTokenExpiresAt = Optional.ofNullable(jsonObject.get("accessTokenExpiresAt"))
+            .map(JsonElement::getAsLong).orElse(0L);
+          if (accessTokenExpiresAt <= 0L) {
+            accessTokenExpiresAt = MicrosoftAuth.getAccessTokenExpiration(accessToken);
+          }
           accounts.add(new Account(
             Optional.ofNullable(jsonObject.get("refreshToken")).map(JsonElement::getAsString).orElse(""),
-            Optional.ofNullable(jsonObject.get("accessToken")).map(JsonElement::getAsString).orElse(""),
+            accessToken,
             Optional.ofNullable(jsonObject.get("username")).map(JsonElement::getAsString).orElse(""),
-            Optional.ofNullable(jsonObject.get("unban")).map(JsonElement::getAsLong).orElse(0L)
+            Optional.ofNullable(jsonObject.get("unban")).map(JsonElement::getAsLong).orElse(0L),
+            Account.AuthenticationType.fromName(
+              Optional.ofNullable(jsonObject.get("authenticationType"))
+                .map(JsonElement::getAsString).orElse(Account.AuthenticationType.MICROSOFT.name())
+            ),
+            Optional.ofNullable(jsonObject.get("oauthClientId")).map(JsonElement::getAsString).orElse(""),
+            accessTokenExpiresAt,
+            Optional.ofNullable(jsonObject.get("lastAuthError")).map(JsonElement::getAsString).orElse("")
           ));
         }
       }
@@ -73,6 +88,10 @@ public class AccountManager {
         jsonObject.addProperty("accessToken", account.getAccessToken());
         jsonObject.addProperty("username", account.getUsername());
         jsonObject.addProperty("unban", account.getUnban());
+        jsonObject.addProperty("authenticationType", account.getAuthenticationType().name());
+        jsonObject.addProperty("oauthClientId", account.getOauthClientId());
+        jsonObject.addProperty("accessTokenExpiresAt", account.getAccessTokenExpiresAt());
+        jsonObject.addProperty("lastAuthError", account.getLastAuthError());
         jsonArray.add(jsonObject);
       }
       PrintWriter printWriter = new PrintWriter(new FileWriter(file));

@@ -28,7 +28,9 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -65,6 +67,11 @@ public final class MicrosoftAuth {
 
   // Account Manager
   private static final String CLIENT_ID = "42a60a84-599d-44b2-a7c6-b00cdef1d6a2";
+  public static final String DEFAULT_REFRESH_TOKEN_CLIENT_ID = "00000000402b5328";
+  private static final String MINECRAFT_LAUNCHER_REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf";
+  private static final String MINECRAFT_LAUNCHER_SCOPE = "service::user.auth.xboxlive.com::MBI_SSL";
+  private static final String MODERN_TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+  private static final String MODERN_SCOPE = "XboxLive.SignIn XboxLive.offline_access";
 
   // 25565 + 10
   private static final int PORT = 25575;
@@ -215,24 +222,60 @@ public final class MicrosoftAuth {
   }
 
   public static CompletableFuture<Map<String, String>> refreshMSAccessTokens(String msToken, Executor executor) {
+    return refreshMSAccessTokens(msToken, Account.AuthenticationType.MICROSOFT, executor);
+  }
+
+  public static CompletableFuture<Map<String, String>> refreshMSAccessTokens(
+    String msToken,
+    Account.AuthenticationType authenticationType,
+    Executor executor
+  ) {
+    return refreshMSAccessTokens(msToken, authenticationType, "", executor);
+  }
+
+  public static CompletableFuture<Map<String, String>> refreshMSAccessTokens(
+    String msToken,
+    Account.AuthenticationType authenticationType,
+    String oauthClientId,
+    Executor executor
+  ) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = createTrustedHttpClient()) {
+        String effectiveClientId = getEffectiveClientId(authenticationType, oauthClientId);
+        boolean legacyRefreshFlow = isLegacyRefreshFlow(authenticationType, effectiveClientId);
         // Build a new HTTP request
-        HttpPost request = new HttpPost(URI.create("https://login.live.com/oauth20_token.srf"));
+        HttpPost request = new HttpPost(URI.create(
+          legacyRefreshFlow ? "https://login.live.com/oauth20_token.srf" : MODERN_TOKEN_URL
+        ));
         request.setConfig(REQUEST_CONFIG);
         request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setEntity(new UrlEncodedFormEntity(
-          Arrays.asList(
+        List<NameValuePair> parameters;
+        if (legacyRefreshFlow) {
+          parameters = Arrays.asList(
+            new BasicNameValuePair("client_id", effectiveClientId),
+            new BasicNameValuePair("grant_type", "refresh_token"),
+            new BasicNameValuePair("redirect_uri", MINECRAFT_LAUNCHER_REDIRECT_URI),
+            new BasicNameValuePair("refresh_token", msToken),
+            new BasicNameValuePair("scope", MINECRAFT_LAUNCHER_SCOPE)
+          );
+        } else if (authenticationType == Account.AuthenticationType.REFRESH_TOKEN) {
+          parameters = Arrays.asList(
+            new BasicNameValuePair("client_id", effectiveClientId),
+            new BasicNameValuePair("grant_type", "refresh_token"),
+            new BasicNameValuePair("refresh_token", msToken),
+            new BasicNameValuePair("scope", MODERN_SCOPE)
+          );
+        } else {
+          parameters = Arrays.asList(
             new BasicNameValuePair("client_id", CLIENT_ID),
             new BasicNameValuePair("grant_type", "refresh_token"),
             new BasicNameValuePair("refresh_token", msToken),
-            // We must provide the exact redirect URI that was used to obtain the auth code
             new BasicNameValuePair(
               "redirect_uri", String.format("http://localhost:%d/callback", PORT)
             )
-          ),
-          "UTF-8"
-        ));
+          );
+        }
+        request.setEntity(new UrlEncodedFormEntity(parameters, "UTF-8"));
 
         // Send the request on the HTTP client
         HttpResponse res = client.execute(request);
@@ -268,6 +311,23 @@ public final class MicrosoftAuth {
   }
 
   public static CompletableFuture<String> acquireXboxAccessToken(String accessToken, Executor executor) {
+    return acquireXboxAccessToken(accessToken, Account.AuthenticationType.MICROSOFT, executor);
+  }
+
+  public static CompletableFuture<String> acquireXboxAccessToken(
+    String accessToken,
+    Account.AuthenticationType authenticationType,
+    Executor executor
+  ) {
+    return acquireXboxAccessToken(accessToken, authenticationType, "", executor);
+  }
+
+  public static CompletableFuture<String> acquireXboxAccessToken(
+    String accessToken,
+    Account.AuthenticationType authenticationType,
+    String oauthClientId,
+    Executor executor
+  ) {
     return CompletableFuture.supplyAsync(() -> {
       try (CloseableHttpClient client = createTrustedHttpClient()) {
         // Build a new HTTP request
@@ -276,7 +336,9 @@ public final class MicrosoftAuth {
         JsonObject properties = new JsonObject();
         properties.addProperty("AuthMethod", "RPS");
         properties.addProperty("SiteName", "user.auth.xboxlive.com");
-        properties.addProperty("RpsTicket", String.format("d=%s", accessToken));
+        String effectiveClientId = getEffectiveClientId(authenticationType, oauthClientId);
+        String ticketPrefix = isLegacyRefreshFlow(authenticationType, effectiveClientId) ? "t=" : "d=";
+        properties.addProperty("RpsTicket", ticketPrefix + accessToken);
         entity.add("Properties", properties);
         entity.addProperty("RelyingParty", "http://auth.xboxlive.com");
         entity.addProperty("TokenType", "JWT");
@@ -431,5 +493,43 @@ public final class MicrosoftAuth {
         throw new CompletionException("Unable to fetch Minecraft profile!", e);
       }
     }, executor);
+  }
+
+  public static long getAccessTokenExpiration(String accessToken) {
+    if (StringUtils.isBlank(accessToken)) {
+      return 0L;
+    }
+
+    try {
+      String[] tokenParts = accessToken.split("\\.");
+      if (tokenParts.length < 2) {
+        return 0L;
+      }
+      String payload = new String(Base64.getUrlDecoder().decode(tokenParts[1]), StandardCharsets.UTF_8);
+      JsonObject json = new JsonParser().parse(payload).getAsJsonObject();
+      return json.has("exp") ? json.get("exp").getAsLong() * 1000L : 0L;
+    } catch (Exception ignored) {
+      return 0L;
+    }
+  }
+
+  private static String getEffectiveClientId(
+    Account.AuthenticationType authenticationType,
+    String oauthClientId
+  ) {
+    if (!StringUtils.isBlank(oauthClientId)) {
+      return oauthClientId.trim();
+    }
+    return authenticationType == Account.AuthenticationType.REFRESH_TOKEN
+      ? DEFAULT_REFRESH_TOKEN_CLIENT_ID
+      : CLIENT_ID;
+  }
+
+  private static boolean isLegacyRefreshFlow(
+    Account.AuthenticationType authenticationType,
+    String effectiveClientId
+  ) {
+    return authenticationType == Account.AuthenticationType.REFRESH_TOKEN
+      && DEFAULT_REFRESH_TOKEN_CLIENT_ID.equalsIgnoreCase(effectiveClientId);
   }
 }

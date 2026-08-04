@@ -24,6 +24,7 @@ public class GuiAccountManager extends GuiScreen {
 
   private GuiButton loginButton = null;
   private GuiButton deleteButton = null;
+  private GuiButton editButton = null;
   private GuiButton cancelButton = null;
   private GuiAccountList guiAccountList = null;
   private Notification notification = null;
@@ -52,11 +53,14 @@ public class GuiAccountManager extends GuiScreen {
     buttonList.add(new GuiButton(
       1, width / 2 + 4, height - 52, 150, 20, "Add"
     ));
+    buttonList.add(editButton = new GuiButton(
+      4, width / 2 - 150 - 4, height - 28, 96, 20, "Edit"
+    ));
     buttonList.add(deleteButton = new GuiButton(
-      2, width / 2 - 150 - 4, height - 28, 150, 20, "Delete"
+      2, width / 2 - 50, height - 28, 96, 20, "Delete"
     ));
     buttonList.add(cancelButton = new GuiButton(
-      3, width / 2 + 4, height - 28, 150, 20, "Cancel"
+      3, width / 2 + 54, height - 28, 96, 20, "Cancel"
     ));
 
     guiAccountList = new GuiAccountList(mc);
@@ -77,8 +81,13 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   public void updateScreen() {
-    if (loginButton != null && deleteButton != null) {
-      loginButton.enabled = deleteButton.enabled = selectedAccount >= 0;
+    if (loginButton != null && deleteButton != null && editButton != null) {
+      boolean hasSelectedAccount = selectedAccount >= 0
+        && selectedAccount < AccountManager.accounts.size();
+      loginButton.enabled = deleteButton.enabled = hasSelectedAccount;
+      editButton.enabled = hasSelectedAccount
+        && AccountManager.accounts.get(selectedAccount).getAuthenticationType()
+          == Account.AuthenticationType.REFRESH_TOKEN;
       if (task != null && !task.isDone()) {
         loginButton.enabled = false;
       }
@@ -133,6 +142,7 @@ public class GuiAccountManager extends GuiScreen {
       case Keyboard.KEY_UP: {
         if (selectedAccount > 0) {
           --selectedAccount;
+          updateScreen();
           if (isCtrlKeyDown()) {
             Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount + 1);
             AccountManager.save();
@@ -143,6 +153,7 @@ public class GuiAccountManager extends GuiScreen {
       case Keyboard.KEY_DOWN: {
         if (selectedAccount < AccountManager.accounts.size() - 1) {
           ++selectedAccount;
+          updateScreen();
           if (isCtrlKeyDown()) {
             Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount - 1);
             AccountManager.save();
@@ -193,6 +204,12 @@ public class GuiAccountManager extends GuiScreen {
               .handle((session, error) -> {
                 if (session != null) {
                   account.setUsername(session.getUsername());
+                  account.setLastAuthError("");
+                  if (account.getAccessTokenExpiresAt() <= 0L) {
+                    account.setAccessTokenExpiresAt(
+                      MicrosoftAuth.getAccessTokenExpiration(account.getAccessToken())
+                    );
+                  }
                   AccountManager.save();
                   SessionManager.set(session);
                   notification = new Notification(TextFormatting.translate(String.format(
@@ -209,14 +226,27 @@ public class GuiAccountManager extends GuiScreen {
                 notification = new Notification(TextFormatting.translate(String.format(
                   "&7Refreshing Microsoft access tokens... (%s)&r", username
                 )), -1L);
-                return MicrosoftAuth.refreshMSAccessTokens(account.getRefreshToken(), executor);
+                return MicrosoftAuth.refreshMSAccessTokens(
+                  account.getRefreshToken(),
+                  account.getAuthenticationType(),
+                  account.getOauthClientId(),
+                  executor
+                );
               })
               .thenComposeAsync(msAccessTokens -> {
                 notification = new Notification(TextFormatting.translate(String.format(
                   "&7Acquiring Xbox access token... (%s)&r", username
                 )), -1L);
                 refreshToken.set(msAccessTokens.get("refresh_token"));
-                return MicrosoftAuth.acquireXboxAccessToken(msAccessTokens.get("access_token"), executor);
+                // Persist token rotation even if a downstream Xbox/Minecraft request fails.
+                account.setRefreshToken(refreshToken.get());
+                AccountManager.save();
+                return MicrosoftAuth.acquireXboxAccessToken(
+                  msAccessTokens.get("access_token"),
+                  account.getAuthenticationType(),
+                  account.getOauthClientId(),
+                  executor
+                );
               })
               .thenComposeAsync(xboxAccessToken -> {
                 notification = new Notification(TextFormatting.translate(String.format(
@@ -243,6 +273,10 @@ public class GuiAccountManager extends GuiScreen {
                 account.setRefreshToken(refreshToken.get());
                 account.setAccessToken(accessToken.get());
                 account.setUsername(session.getUsername());
+                account.setAccessTokenExpiresAt(
+                  MicrosoftAuth.getAccessTokenExpiration(accessToken.get())
+                );
+                account.setLastAuthError("");
                 AccountManager.save();
                 SessionManager.set(session);
                 notification = new Notification(TextFormatting.translate(String.format(
@@ -251,8 +285,10 @@ public class GuiAccountManager extends GuiScreen {
               })
               .exceptionally(error -> {
                 if (!(error.getCause() instanceof NoSuchElementException)) {
+                  account.setLastAuthError(getErrorMessage(error));
+                  AccountManager.save();
                   notification = new Notification(TextFormatting.translate(String.format(
-                    "&c%s (%s)&r", error.getMessage(), username
+                    "&c%s (%s)&r", getErrorMessage(error), username
                   )), 5000L);
                 }
                 return null;
@@ -261,7 +297,7 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
         case 1: { // Add
-          mc.displayGuiScreen(new GuiMicrosoftAuth(previousScreen));
+          mc.displayGuiScreen(new GuiAddAccount(previousScreen));
         }
         break;
         case 2: { // Delete
@@ -270,6 +306,15 @@ public class GuiAccountManager extends GuiScreen {
             AccountManager.save();
             selectedAccount = -1;
             updateScreen();
+          }
+        }
+        break;
+        case 4: { // Edit
+          if (selectedAccount > -1 && selectedAccount < AccountManager.accounts.size()) {
+            Account account = AccountManager.accounts.get(selectedAccount);
+            if (account.getAuthenticationType() == Account.AuthenticationType.REFRESH_TOKEN) {
+              mc.displayGuiScreen(new GuiRefreshTokenEdit(previousScreen, account));
+            }
           }
         }
         break;
@@ -284,11 +329,29 @@ public class GuiAccountManager extends GuiScreen {
     }
   }
 
+  private static String getErrorMessage(Throwable error) {
+    Throwable current = error;
+    while (current.getCause() != null) {
+      current = current.getCause();
+    }
+    return StringUtils.defaultIfBlank(current.getMessage(), "Authentication failed.");
+  }
+
+  private static String getAuthenticationStatus(Account account) {
+    if (!StringUtils.isBlank(account.getLastAuthError())) {
+      return "&cAuthentication failed";
+    }
+    if (StringUtils.isBlank(account.getAccessToken())) {
+      return "&eNot authenticated";
+    }
+    return "&aValid";
+  }
+
   class GuiAccountList extends GuiSlot {
     public GuiAccountList(Minecraft mc) {
       super(
         mc, GuiAccountManager.this.width, GuiAccountManager.this.height,
-        32, GuiAccountManager.this.height - 64, 16
+        32, GuiAccountManager.this.height - 64, 28
       );
     }
 
@@ -314,7 +377,7 @@ public class GuiAccountManager extends GuiScreen {
 
     @Override
     protected int getContentHeight() {
-      return AccountManager.accounts.size() * 16;
+      return AccountManager.accounts.size() * 28;
     }
 
     @Override
@@ -349,6 +412,15 @@ public class GuiAccountManager extends GuiScreen {
       );
       GuiAccountManager.this.drawString(
         fr, username, x + 2, y + 2, -1
+      );
+
+      String accountStatus = TextFormatting.translate(String.format(
+        "&8%s &7| %s&r",
+        account.getAuthenticationType().getDisplayName(),
+        getAuthenticationStatus(account)
+      ));
+      GuiAccountManager.this.drawString(
+        fr, accountStatus, x + 2, y + 14, -1
       );
 
       long currentTime = System.currentTimeMillis();

@@ -96,7 +96,14 @@ public class GuiMicrosoftAuth extends GuiScreen {
         .thenAccept(session -> {
           status = null;
           Account acc = new Account(
-            refreshToken.get(), accessToken.get(), session.getUsername()
+            refreshToken.get(),
+            accessToken.get(),
+            session.getUsername(),
+            0L,
+            Account.AuthenticationType.MICROSOFT,
+            "",
+            MicrosoftAuth.getAccessTokenExpiration(accessToken.get()),
+            ""
           );
           for (Account account : AccountManager.accounts) {
             if (acc.getUsername().equals(account.getUsername())) {
