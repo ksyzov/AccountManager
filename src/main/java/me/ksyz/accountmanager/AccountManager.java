@@ -10,6 +10,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -100,5 +101,21 @@ public class AccountManager {
     } catch (IOException e) {
       System.err.print("Couldn't save accounts.json!");
     }
+  }
+
+  public static Account findDuplicateAccount(Account candidate) {
+    for (Account account : accounts) {
+      if (account.getAuthenticationType() != candidate.getAuthenticationType()) {
+        continue;
+      }
+
+      boolean sameUsername = !StringUtils.isBlank(candidate.getUsername())
+        && !StringUtils.isBlank(account.getUsername())
+        && candidate.getUsername().equalsIgnoreCase(account.getUsername());
+      if (sameUsername) {
+        return account;
+      }
+    }
+    return null;
   }
 }

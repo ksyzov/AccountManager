@@ -263,6 +263,16 @@ public class GuiRefreshTokenAuth extends GuiScreen {
       MicrosoftAuth.getAccessTokenExpiration(accessToken),
       ""
     );
+    if (AccountManager.findDuplicateAccount(account) != null) {
+      status = "&cThis account is already added!&r";
+      task = null;
+      executor.shutdown();
+      tokenField.setText(refreshToken);
+      tokenField.setEnabled(true);
+      tokenField.setFocused(true);
+      clientIdField.setEnabled(true);
+      return;
+    }
     for (Account existing : AccountManager.accounts) {
       if (account.getUsername().equals(existing.getUsername())) {
         account.setUnban(existing.getUnban());
