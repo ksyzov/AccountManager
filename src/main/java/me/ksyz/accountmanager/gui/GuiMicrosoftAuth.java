@@ -94,10 +94,22 @@ public class GuiMicrosoftAuth extends GuiScreen {
           return MicrosoftAuth.login(mcToken, executor);
         })
         .thenAccept(session -> {
-          status = null;
           Account acc = new Account(
-            refreshToken.get(), accessToken.get(), session.getUsername()
+            refreshToken.get(),
+            accessToken.get(),
+            session.getUsername(),
+            0L,
+            Account.AuthenticationType.MICROSOFT,
+            "",
+            MicrosoftAuth.getAccessTokenExpiration(accessToken.get()),
+            ""
           );
+          if (AccountManager.findDuplicateAccount(acc) != null) {
+            status = "&cThis account is already added!&r";
+            cause = "&7An account with the same authentication type and Minecraft identity already exists.&r";
+            return;
+          }
+          status = null;
           for (Account account : AccountManager.accounts) {
             if (acc.getUsername().equals(account.getUsername())) {
               acc.setUnban(account.getUnban());
@@ -105,6 +117,7 @@ public class GuiMicrosoftAuth extends GuiScreen {
             }
           }
           AccountManager.accounts.add(acc);
+          AccountManager.markLastLoggedIn(acc);
           AccountManager.save();
           SessionManager.set(session);
           success = true;

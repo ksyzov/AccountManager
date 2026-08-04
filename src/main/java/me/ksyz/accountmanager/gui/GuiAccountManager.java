@@ -24,6 +24,7 @@ public class GuiAccountManager extends GuiScreen {
 
   private GuiButton loginButton = null;
   private GuiButton deleteButton = null;
+  private GuiButton editButton = null;
   private GuiButton cancelButton = null;
   private GuiAccountList guiAccountList = null;
   private Notification notification = null;
@@ -43,20 +44,24 @@ public class GuiAccountManager extends GuiScreen {
   @Override
   public void initGui() {
     AccountManager.load();
+    selectedAccount = findInitialSelectedAccount();
     Keyboard.enableRepeatEvents(true);
 
     buttonList.clear();
     buttonList.add(loginButton = new GuiButton(
-      0, width / 2 - 150 - 4, height - 52, 150, 20, "Login"
+      0, width / 2 - 150 - 4, height - 52, 152, 20, "Login"
     ));
     buttonList.add(new GuiButton(
-      1, width / 2 + 4, height - 52, 150, 20, "Add"
+      1, width / 2 + 2, height - 52, 152, 20, "Add"
+    ));
+    buttonList.add(editButton = new GuiButton(
+      4, width / 2 - 150 - 4, height - 28, 100, 20, "Edit"
     ));
     buttonList.add(deleteButton = new GuiButton(
-      2, width / 2 - 150 - 4, height - 28, 150, 20, "Delete"
+      2, width / 2 - 50, height - 28, 100, 20, "Delete"
     ));
     buttonList.add(cancelButton = new GuiButton(
-      3, width / 2 + 4, height - 28, 150, 20, "Cancel"
+      3, width / 2 + 54, height - 28, 100, 20, "Cancel"
     ));
 
     guiAccountList = new GuiAccountList(mc);
@@ -77,8 +82,19 @@ public class GuiAccountManager extends GuiScreen {
 
   @Override
   public void updateScreen() {
-    if (loginButton != null && deleteButton != null) {
-      loginButton.enabled = deleteButton.enabled = selectedAccount >= 0;
+    if (loginButton != null && deleteButton != null && editButton != null) {
+      boolean hasSelectedAccount = selectedAccount >= 0
+        && selectedAccount < AccountManager.accounts.size();
+      boolean selectedAccountIsLauncher = hasSelectedAccount
+        && AccountManager.isLauncherAccount(AccountManager.accounts.get(selectedAccount));
+      loginButton.enabled = hasSelectedAccount;
+      deleteButton.enabled = hasSelectedAccount && !selectedAccountIsLauncher;
+      editButton.enabled = hasSelectedAccount && (
+        AccountManager.accounts.get(selectedAccount).getAuthenticationType()
+          == Account.AuthenticationType.REFRESH_TOKEN
+          || AccountManager.accounts.get(selectedAccount).getAuthenticationType()
+            == Account.AuthenticationType.OFFLINE
+      );
       if (task != null && !task.isDone()) {
         loginButton.enabled = false;
       }
@@ -99,11 +115,6 @@ public class GuiAccountManager extends GuiScreen {
       )),
       width / 2, 20, -1
     );
-
-    String text = TextFormatting.translate(String.format(
-      "&7Username: &3%s&r", SessionManager.get().getUsername()
-    ));
-    mc.currentScreen.drawString(mc.fontRendererObj, text, 3, 3, -1);
 
     if (notification != null && !notification.isExpired()) {
       String notificationText = notification.getMessage();
@@ -133,6 +144,7 @@ public class GuiAccountManager extends GuiScreen {
       case Keyboard.KEY_UP: {
         if (selectedAccount > 0) {
           --selectedAccount;
+          updateScreen();
           if (isCtrlKeyDown()) {
             Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount + 1);
             AccountManager.save();
@@ -143,6 +155,7 @@ public class GuiAccountManager extends GuiScreen {
       case Keyboard.KEY_DOWN: {
         if (selectedAccount < AccountManager.accounts.size() - 1) {
           ++selectedAccount;
+          updateScreen();
           if (isCtrlKeyDown()) {
             Collections.swap(AccountManager.accounts, selectedAccount, selectedAccount - 1);
             AccountManager.save();
@@ -179,10 +192,21 @@ public class GuiAccountManager extends GuiScreen {
       switch (button.id) {
         case 0: { // Login
           if (task == null || task.isDone()) {
+            Account account = AccountManager.accounts.get(selectedAccount);
+            if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
+              SessionManager.set(new net.minecraft.util.Session(
+                account.getUsername(), "", "", net.minecraft.util.Session.Type.LEGACY.toString()
+              ));
+              AccountManager.markLastLoggedIn(account);
+              AccountManager.save();
+              notification = new Notification(TextFormatting.translate(String.format(
+                "&aSuccessful login! (%s)&r", account.getUsername()
+              )), 5000L);
+              return;
+            }
             if (executor == null) {
               executor = Executors.newSingleThreadExecutor();
             }
-            Account account = AccountManager.accounts.get(selectedAccount);
             String username = StringUtils.isBlank(account.getUsername()) ? "???" : account.getUsername();
             AtomicReference<String> refreshToken = new AtomicReference<>("");
             AtomicReference<String> accessToken = new AtomicReference<>("");
@@ -193,6 +217,13 @@ public class GuiAccountManager extends GuiScreen {
               .handle((session, error) -> {
                 if (session != null) {
                   account.setUsername(session.getUsername());
+                  account.setLastAuthError("");
+                  AccountManager.markLastLoggedIn(account);
+                  if (account.getAccessTokenExpiresAt() <= 0L) {
+                    account.setAccessTokenExpiresAt(
+                      MicrosoftAuth.getAccessTokenExpiration(account.getAccessToken())
+                    );
+                  }
                   AccountManager.save();
                   SessionManager.set(session);
                   notification = new Notification(TextFormatting.translate(String.format(
@@ -209,14 +240,27 @@ public class GuiAccountManager extends GuiScreen {
                 notification = new Notification(TextFormatting.translate(String.format(
                   "&7Refreshing Microsoft access tokens... (%s)&r", username
                 )), -1L);
-                return MicrosoftAuth.refreshMSAccessTokens(account.getRefreshToken(), executor);
+                return MicrosoftAuth.refreshMSAccessTokens(
+                  account.getRefreshToken(),
+                  account.getAuthenticationType(),
+                  account.getOauthClientId(),
+                  executor
+                );
               })
               .thenComposeAsync(msAccessTokens -> {
                 notification = new Notification(TextFormatting.translate(String.format(
                   "&7Acquiring Xbox access token... (%s)&r", username
                 )), -1L);
                 refreshToken.set(msAccessTokens.get("refresh_token"));
-                return MicrosoftAuth.acquireXboxAccessToken(msAccessTokens.get("access_token"), executor);
+                // Persist token rotation even if a downstream Xbox/Minecraft request fails.
+                account.setRefreshToken(refreshToken.get());
+                AccountManager.save();
+                return MicrosoftAuth.acquireXboxAccessToken(
+                  msAccessTokens.get("access_token"),
+                  account.getAuthenticationType(),
+                  account.getOauthClientId(),
+                  executor
+                );
               })
               .thenComposeAsync(xboxAccessToken -> {
                 notification = new Notification(TextFormatting.translate(String.format(
@@ -243,6 +287,11 @@ public class GuiAccountManager extends GuiScreen {
                 account.setRefreshToken(refreshToken.get());
                 account.setAccessToken(accessToken.get());
                 account.setUsername(session.getUsername());
+                account.setAccessTokenExpiresAt(
+                  MicrosoftAuth.getAccessTokenExpiration(accessToken.get())
+                );
+                account.setLastAuthError("");
+                AccountManager.markLastLoggedIn(account);
                 AccountManager.save();
                 SessionManager.set(session);
                 notification = new Notification(TextFormatting.translate(String.format(
@@ -251,8 +300,10 @@ public class GuiAccountManager extends GuiScreen {
               })
               .exceptionally(error -> {
                 if (!(error.getCause() instanceof NoSuchElementException)) {
+                  account.setLastAuthError(getErrorMessage(error));
+                  AccountManager.save();
                   notification = new Notification(TextFormatting.translate(String.format(
-                    "&c%s (%s)&r", error.getMessage(), username
+                    "&c%s (%s)&r", getErrorMessage(error), username
                   )), 5000L);
                 }
                 return null;
@@ -261,15 +312,36 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
         case 1: { // Add
-          mc.displayGuiScreen(new GuiMicrosoftAuth(previousScreen));
+          mc.displayGuiScreen(new GuiAddAccount(previousScreen));
         }
         break;
         case 2: { // Delete
-          if (selectedAccount > -1 && selectedAccount < AccountManager.accounts.size()) {
+          if (
+            selectedAccount > -1
+              && selectedAccount < AccountManager.accounts.size()
+              && !AccountManager.isLauncherAccount(AccountManager.accounts.get(selectedAccount))
+          ) {
+            boolean wasCurrentSession = AccountManager.isCurrentSessionAccount(
+              AccountManager.accounts.get(selectedAccount)
+            );
+            if (wasCurrentSession) {
+              AccountManager.switchToLauncherSession();
+            }
             AccountManager.accounts.remove(selectedAccount);
             AccountManager.save();
-            selectedAccount = -1;
+            selectedAccount = findLauncherAccount();
             updateScreen();
+          }
+        }
+        break;
+        case 4: { // Edit
+          if (selectedAccount > -1 && selectedAccount < AccountManager.accounts.size()) {
+            Account account = AccountManager.accounts.get(selectedAccount);
+            if (account.getAuthenticationType() == Account.AuthenticationType.REFRESH_TOKEN) {
+              mc.displayGuiScreen(new GuiRefreshTokenEdit(previousScreen, account));
+            } else if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
+              mc.displayGuiScreen(new GuiOfflineEdit(previousScreen, account));
+            }
           }
         }
         break;
@@ -284,11 +356,52 @@ public class GuiAccountManager extends GuiScreen {
     }
   }
 
+  private static String getErrorMessage(Throwable error) {
+    Throwable current = error;
+    while (current.getCause() != null) {
+      current = current.getCause();
+    }
+    return StringUtils.defaultIfBlank(current.getMessage(), "Authentication failed.");
+  }
+
+  private static int findInitialSelectedAccount() {
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (AccountManager.accounts.get(index).isLastLoggedIn()) {
+        return index;
+      }
+    }
+
+    String currentUsername = SessionManager.get().getUsername();
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (currentUsername.equalsIgnoreCase(AccountManager.accounts.get(index).getUsername())) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  private static int findLauncherAccount() {
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (AccountManager.isLauncherAccount(AccountManager.accounts.get(index))) {
+        return index;
+      }
+    }
+    return -1;
+  }
+
+  private static String getAuthenticationStatus(Account account) {
+    if (!StringUtils.isBlank(account.getLastAuthError())) {
+      return "&cAuthentication failed";
+    }
+    return "";
+  }
+
   class GuiAccountList extends GuiSlot {
     public GuiAccountList(Minecraft mc) {
       super(
         mc, GuiAccountManager.this.width, GuiAccountManager.this.height,
-        32, GuiAccountManager.this.height - 64, 16
+        32, GuiAccountManager.this.height - 64, 28
       );
     }
 
@@ -314,7 +427,7 @@ public class GuiAccountManager extends GuiScreen {
 
     @Override
     protected int getContentHeight() {
-      return AccountManager.accounts.size() * 16;
+      return AccountManager.accounts.size() * 28;
     }
 
     @Override
@@ -339,7 +452,13 @@ public class GuiAccountManager extends GuiScreen {
       String username = account.getUsername();
       if (StringUtils.isBlank(username)) {
         username = "&7&l?";
-      } else if (account.getAccessToken().equals(SessionManager.get().getToken())) {
+      } else if (
+        account.getAuthenticationType() == Account.AuthenticationType.OFFLINE
+          && username.equals(SessionManager.get().getUsername())
+      ) {
+        username = String.format("&a&l%s", username);
+      } else if (!StringUtils.isBlank(account.getAccessToken())
+        && account.getAccessToken().equals(SessionManager.get().getToken())) {
         username = String.format("&a&l%s", username);
       } else if (username.equals(SessionManager.get().getUsername())) {
         username = String.format("&a%s", username);
@@ -349,6 +468,21 @@ public class GuiAccountManager extends GuiScreen {
       );
       GuiAccountManager.this.drawString(
         fr, username, x + 2, y + 2, -1
+      );
+
+      String accountStatus = String.format(
+        "&8%s",
+        account.getAuthenticationType().getDisplayName()
+      );
+      if (AccountManager.isLauncherAccount(account)) {
+        accountStatus += "&8 | Launcher";
+      }
+      if (!StringUtils.isBlank(getAuthenticationStatus(account))) {
+        accountStatus += String.format(" &7| %s", getAuthenticationStatus(account));
+      }
+      accountStatus = TextFormatting.translate(accountStatus + "&r");
+      GuiAccountManager.this.drawString(
+        fr, accountStatus, x + 2, y + 14, -1
       );
 
       long currentTime = System.currentTimeMillis();

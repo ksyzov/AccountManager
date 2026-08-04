@@ -18,6 +18,8 @@ buildscript {
 
 apply plugin: "net.minecraftforge.gradle.forge"
 
+configurations.runtimeOnly.canBeResolved = true
+
 version = modVersion
 group = modGroup
 archivesBaseName = modBaseName
