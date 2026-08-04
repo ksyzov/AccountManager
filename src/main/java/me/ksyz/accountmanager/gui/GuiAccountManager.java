@@ -85,7 +85,10 @@ public class GuiAccountManager extends GuiScreen {
     if (loginButton != null && deleteButton != null && editButton != null) {
       boolean hasSelectedAccount = selectedAccount >= 0
         && selectedAccount < AccountManager.accounts.size();
-      loginButton.enabled = deleteButton.enabled = hasSelectedAccount;
+      boolean selectedAccountIsLauncher = hasSelectedAccount
+        && AccountManager.isLauncherAccount(AccountManager.accounts.get(selectedAccount));
+      loginButton.enabled = hasSelectedAccount;
+      deleteButton.enabled = hasSelectedAccount && !selectedAccountIsLauncher;
       editButton.enabled = hasSelectedAccount && (
         AccountManager.accounts.get(selectedAccount).getAuthenticationType()
           == Account.AuthenticationType.REFRESH_TOKEN
@@ -313,10 +316,20 @@ public class GuiAccountManager extends GuiScreen {
         }
         break;
         case 2: { // Delete
-          if (selectedAccount > -1 && selectedAccount < AccountManager.accounts.size()) {
+          if (
+            selectedAccount > -1
+              && selectedAccount < AccountManager.accounts.size()
+              && !AccountManager.isLauncherAccount(AccountManager.accounts.get(selectedAccount))
+          ) {
+            boolean wasCurrentSession = AccountManager.isCurrentSessionAccount(
+              AccountManager.accounts.get(selectedAccount)
+            );
+            if (wasCurrentSession) {
+              AccountManager.switchToLauncherSession();
+            }
             AccountManager.accounts.remove(selectedAccount);
             AccountManager.save();
-            selectedAccount = -1;
+            selectedAccount = findLauncherAccount();
             updateScreen();
           }
         }
@@ -368,17 +381,20 @@ public class GuiAccountManager extends GuiScreen {
     return -1;
   }
 
+  private static int findLauncherAccount() {
+    for (int index = 0; index < AccountManager.accounts.size(); ++index) {
+      if (AccountManager.isLauncherAccount(AccountManager.accounts.get(index))) {
+        return index;
+      }
+    }
+    return -1;
+  }
+
   private static String getAuthenticationStatus(Account account) {
     if (!StringUtils.isBlank(account.getLastAuthError())) {
       return "&cAuthentication failed";
     }
-    if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
-      return "&aValid";
-    }
-    if (StringUtils.isBlank(account.getAccessToken())) {
-      return "&eNot authenticated";
-    }
-    return "&aValid";
+    return "";
   }
 
   class GuiAccountList extends GuiSlot {
@@ -454,11 +470,17 @@ public class GuiAccountManager extends GuiScreen {
         fr, username, x + 2, y + 2, -1
       );
 
-      String accountStatus = TextFormatting.translate(String.format(
-        "&8%s &7| %s&r",
-        account.getAuthenticationType().getDisplayName(),
-        getAuthenticationStatus(account)
-      ));
+      String accountStatus = String.format(
+        "&8%s",
+        account.getAuthenticationType().getDisplayName()
+      );
+      if (AccountManager.isLauncherAccount(account)) {
+        accountStatus += "&8 | Launcher";
+      }
+      if (!StringUtils.isBlank(getAuthenticationStatus(account))) {
+        accountStatus += String.format(" &7| %s", getAuthenticationStatus(account));
+      }
+      accountStatus = TextFormatting.translate(accountStatus + "&r");
       GuiAccountManager.this.drawString(
         fr, accountStatus, x + 2, y + 14, -1
       );

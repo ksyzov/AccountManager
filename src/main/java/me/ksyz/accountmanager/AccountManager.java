@@ -305,6 +305,39 @@ public class AccountManager {
     return null;
   }
 
+  public static boolean isLauncherAccount(Account account) {
+    if (account == null) {
+      return false;
+    }
+    return account == initialLauncherSessionAccount
+      || (initialLauncherSession != null
+        && initialLauncherSession.getUsername().equalsIgnoreCase(account.getUsername()));
+  }
+
+  public static boolean isCurrentSessionAccount(Account account) {
+    if (account == null) {
+      return false;
+    }
+    net.minecraft.util.Session session = SessionManager.get();
+    return session != null
+      && !StringUtils.isBlank(session.getUsername())
+      && session.getUsername().equalsIgnoreCase(account.getUsername());
+  }
+
+  public static void switchToLauncherSession() {
+    if (initialLauncherSession == null) {
+      return;
+    }
+
+    SessionManager.set(initialLauncherSession);
+    for (Account account : accounts) {
+      if (isLauncherAccount(account)) {
+        markLastLoggedIn(account);
+        return;
+      }
+    }
+  }
+
   public static Account findDuplicateAccount(Account candidate) {
     return findDuplicateAccount(candidate, null);
   }
