@@ -3,7 +3,8 @@ package me.ksyz.accountmanager.auth;
 public class Account {
   public enum AuthenticationType {
     MICROSOFT("Microsoft"),
-    REFRESH_TOKEN("Refresh token");
+    REFRESH_TOKEN("Refresh token"),
+    OFFLINE("Offline");
 
     private final String displayName;
 

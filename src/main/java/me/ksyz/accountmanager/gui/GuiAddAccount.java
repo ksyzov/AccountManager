@@ -15,13 +15,16 @@ public class GuiAddAccount extends GuiScreen {
   public void initGui() {
     buttonList.clear();
     buttonList.add(new GuiButton(
-      0, width / 2 - 100, height / 2 - 12, 200, 20, "Microsoft Login"
+      0, width / 2 - 100, height / 2 - 24, 200, 20, "Microsoft Login"
     ));
     buttonList.add(new GuiButton(
-      1, width / 2 - 100, height / 2 + 12, 200, 20, "Refresh Token"
+      1, width / 2 - 100, height / 2, 200, 20, "Refresh Token"
     ));
     buttonList.add(new GuiButton(
-      2, width / 2 - 100, height / 2 + 42, 200, 20, "Cancel"
+      2, width / 2 - 100, height / 2 + 24, 200, 20, "Offline"
+    ));
+    buttonList.add(new GuiButton(
+      3, width / 2 - 100, height / 2 + 60, 200, 20, "Cancel"
     ));
   }
 
@@ -30,7 +33,7 @@ public class GuiAddAccount extends GuiScreen {
     drawDefaultBackground();
     drawCenteredString(
       fontRendererObj, "Choose an authentication method",
-      width / 2, height / 2 - 42, 0xFFFFFF
+      width / 2, height / 2 - 56, 0xFFFFFF
     );
     super.drawScreen(mouseX, mouseY, partialTicks);
   }
@@ -56,6 +59,9 @@ public class GuiAddAccount extends GuiScreen {
         mc.displayGuiScreen(new GuiRefreshTokenAuth(previousScreen));
         break;
       case 2:
+        mc.displayGuiScreen(new GuiOfflineAuth(previousScreen));
+        break;
+      case 3:
         mc.displayGuiScreen(new GuiAccountManager(previousScreen));
         break;
     }

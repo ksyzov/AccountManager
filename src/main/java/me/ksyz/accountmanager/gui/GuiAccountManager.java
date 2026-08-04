@@ -48,19 +48,19 @@ public class GuiAccountManager extends GuiScreen {
 
     buttonList.clear();
     buttonList.add(loginButton = new GuiButton(
-      0, width / 2 - 150 - 4, height - 52, 150, 20, "Login"
+      0, width / 2 - 150 - 4, height - 52, 152, 20, "Login"
     ));
     buttonList.add(new GuiButton(
-      1, width / 2 + 4, height - 52, 150, 20, "Add"
+      1, width / 2 + 2, height - 52, 152, 20, "Add"
     ));
     buttonList.add(editButton = new GuiButton(
-      4, width / 2 - 150 - 4, height - 28, 96, 20, "Edit"
+      4, width / 2 - 150 - 4, height - 28, 100, 20, "Edit"
     ));
     buttonList.add(deleteButton = new GuiButton(
-      2, width / 2 - 50, height - 28, 96, 20, "Delete"
+      2, width / 2 - 50, height - 28, 100, 20, "Delete"
     ));
     buttonList.add(cancelButton = new GuiButton(
-      3, width / 2 + 54, height - 28, 96, 20, "Cancel"
+      3, width / 2 + 54, height - 28, 100, 20, "Cancel"
     ));
 
     guiAccountList = new GuiAccountList(mc);
@@ -85,9 +85,12 @@ public class GuiAccountManager extends GuiScreen {
       boolean hasSelectedAccount = selectedAccount >= 0
         && selectedAccount < AccountManager.accounts.size();
       loginButton.enabled = deleteButton.enabled = hasSelectedAccount;
-      editButton.enabled = hasSelectedAccount
-        && AccountManager.accounts.get(selectedAccount).getAuthenticationType()
-          == Account.AuthenticationType.REFRESH_TOKEN;
+      editButton.enabled = hasSelectedAccount && (
+        AccountManager.accounts.get(selectedAccount).getAuthenticationType()
+          == Account.AuthenticationType.REFRESH_TOKEN
+          || AccountManager.accounts.get(selectedAccount).getAuthenticationType()
+            == Account.AuthenticationType.OFFLINE
+      );
       if (task != null && !task.isDone()) {
         loginButton.enabled = false;
       }
@@ -108,11 +111,6 @@ public class GuiAccountManager extends GuiScreen {
       )),
       width / 2, 20, -1
     );
-
-    String text = TextFormatting.translate(String.format(
-      "&7Username: &3%s&r", SessionManager.get().getUsername()
-    ));
-    mc.currentScreen.drawString(mc.fontRendererObj, text, 3, 3, -1);
 
     if (notification != null && !notification.isExpired()) {
       String notificationText = notification.getMessage();
@@ -190,10 +188,19 @@ public class GuiAccountManager extends GuiScreen {
       switch (button.id) {
         case 0: { // Login
           if (task == null || task.isDone()) {
+            Account account = AccountManager.accounts.get(selectedAccount);
+            if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
+              SessionManager.set(new net.minecraft.util.Session(
+                account.getUsername(), "", "", net.minecraft.util.Session.Type.LEGACY.toString()
+              ));
+              notification = new Notification(TextFormatting.translate(String.format(
+                "&aSuccessful login! (%s)&r", account.getUsername()
+              )), 5000L);
+              return;
+            }
             if (executor == null) {
               executor = Executors.newSingleThreadExecutor();
             }
-            Account account = AccountManager.accounts.get(selectedAccount);
             String username = StringUtils.isBlank(account.getUsername()) ? "???" : account.getUsername();
             AtomicReference<String> refreshToken = new AtomicReference<>("");
             AtomicReference<String> accessToken = new AtomicReference<>("");
@@ -314,6 +321,8 @@ public class GuiAccountManager extends GuiScreen {
             Account account = AccountManager.accounts.get(selectedAccount);
             if (account.getAuthenticationType() == Account.AuthenticationType.REFRESH_TOKEN) {
               mc.displayGuiScreen(new GuiRefreshTokenEdit(previousScreen, account));
+            } else if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
+              mc.displayGuiScreen(new GuiOfflineEdit(previousScreen, account));
             }
           }
         }
@@ -340,6 +349,9 @@ public class GuiAccountManager extends GuiScreen {
   private static String getAuthenticationStatus(Account account) {
     if (!StringUtils.isBlank(account.getLastAuthError())) {
       return "&cAuthentication failed";
+    }
+    if (account.getAuthenticationType() == Account.AuthenticationType.OFFLINE) {
+      return "&aValid";
     }
     if (StringUtils.isBlank(account.getAccessToken())) {
       return "&eNot authenticated";
@@ -402,7 +414,13 @@ public class GuiAccountManager extends GuiScreen {
       String username = account.getUsername();
       if (StringUtils.isBlank(username)) {
         username = "&7&l?";
-      } else if (account.getAccessToken().equals(SessionManager.get().getToken())) {
+      } else if (
+        account.getAuthenticationType() == Account.AuthenticationType.OFFLINE
+          && username.equals(SessionManager.get().getUsername())
+      ) {
+        username = String.format("&a&l%s", username);
+      } else if (!StringUtils.isBlank(account.getAccessToken())
+        && account.getAccessToken().equals(SessionManager.get().getToken())) {
         username = String.format("&a&l%s", username);
       } else if (username.equals(SessionManager.get().getUsername())) {
         username = String.format("&a%s", username);
