@@ -26,23 +26,24 @@ public class GuiAccountManager extends GuiScreen {
   private GuiButton deleteButton = null;
   private GuiButton cancelButton = null;
   private GuiAccountList guiAccountList = null;
-  private Notification notification = null;
+  private Notification notification;
   private int selectedAccount = -1;
   private ExecutorService executor = null;
   private CompletableFuture<Void> task = null;
 
   public GuiAccountManager(GuiScreen previousScreen) {
-    this.previousScreen = previousScreen;
+    this(previousScreen, null);
   }
 
   public GuiAccountManager(GuiScreen previousScreen, Notification notification) {
     this.previousScreen = previousScreen;
     this.notification = notification;
+
+    AccountManager.load();
   }
 
   @Override
   public void initGui() {
-    AccountManager.load();
     Keyboard.enableRepeatEvents(true);
 
     buttonList.clear();
